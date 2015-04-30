@@ -252,16 +252,29 @@ function listFileNew(){
     
 }
 
-
-function markFileListed(worker, job){
-    worker['free'] = false;
+function _renameFile(fileId, title, cb){
     var opt = {
-        fileId: job['srcFileId'],
+        fileId: fileId,
         resource:{
-            title: getPrefix('LISTED') + '#' + job['srcFileId']+ '#NULL#' + job['oriTitle'],
+            title: title,
         }
     }
     drive.files.patch(opt, function(err,file){
+        if (err){
+            cb(err)
+            return;
+        }
+        cb(null, file)
+        return;
+
+    })
+
+}
+
+function markFileListed(worker, job){
+    worker['free'] = false;
+
+    _renameFile(job['srcFileId'], getPrefix('LISTED') + '#' + job['srcFileId']+ '#NULL#' + job['oriTitle'], function(err, file){
         if (err){
             logger.error('markListed error:', err); 
             worker.free = true;
@@ -283,16 +296,70 @@ function cloneNewFile(worker, job){
     worker['free'] = false;
     logger.debug(worker.name, 'cloneNewFile()', JSON.stringify(job));
     drive.parents.list({fileId:job['srcFileId']}, function(err, result){
-        logger.error(worker.name, err);
+        if (err){
+            logger.error(worker.name, err);
+            worker['free'] = true;
+            return;
+        }
         logger.debug(worker.name, result);
-
-        jobs.push(job);
-        worker['free'] = true;
+        copyFile(result.items);
     });
 
+    function copyFile(parents){
+        var opt = {
+            fileId: job['srcFileId'],
+            resource:{
+                title: getPrefix('DST') + '#' + job['oriTitle'],
+                parents: parents,
+            }
+        }
+
+        logger.debug(opt);
+        drive.files.copy(opt, function(err, result){
+            if (err){
+                logger.error(worker.name, 'copyfile', err);
+                worker['free'] = true;
+                return;
+            }
+            logger.debug(worker.name, 'copyfile', result);
+            job['dstFileId'] = result['id'];
+            rename()
+
+        })
+    }
+
+    function rename(){
+        var title = getPrefix('COPIED') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
+        _renameFile(job['srcFileId'], title, function(err, file){
+            if (err){
+                logger.error('rename error:', err); 
+                worker.free = true;
+                return;
+            }
+            job['srcTitle'] = file['title']
+            job['status'] = getStatus(file['title']);
+            logger.debug('COPIED successed!', job);
+
+            jobs.push(job);
+            logger.warn(jobs);
+            worker['free'] = true;
+            return;
+
+        })
+    }
+
+}
+
+function setPermission(worker, job){
+    worker['free'] = false;
+    logger.debug(worker.name, 'setPermission()', JSON.stringify(job));
+    jobs.push(job);
+    worker['free'] = true;
+    return;
 }
 
 var handleStatus = {
     'NEW': markFileListed,
     'LISTED': cloneNewFile,
+    'COPIED': setPermission,
 }
