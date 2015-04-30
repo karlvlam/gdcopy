@@ -270,6 +270,21 @@ function _renameFile(fileId, title, cb){
     })
 
 }
+function _listPermission(fileId, cb){
+    var opt = {
+        fileId: fileId,
+    }
+    drive.permissions.list(opt, function(err,result){
+        if (err){
+            cb(err)
+            return;
+        }
+        cb(null, result)
+        return;
+
+    })
+
+}
 
 function markFileListed(worker, job){
     worker['free'] = false;
@@ -353,9 +368,20 @@ function cloneNewFile(worker, job){
 function setPermission(worker, job){
     worker['free'] = false;
     logger.debug(worker.name, 'setPermission()', JSON.stringify(job));
-    jobs.push(job);
-    worker['free'] = true;
-    return;
+    _listPermission(job['srcFileId'], function(err, result){
+        if (err){
+            logger.error('listPermission error:', err); 
+            worker.free = true;
+            return;
+        }
+        logger.debug('listPermission OK', result);
+
+        jobs.push(job);
+        logger.warn(jobs);
+        worker['free'] = true;
+        return;
+
+    });
 }
 
 var handleStatus = {
