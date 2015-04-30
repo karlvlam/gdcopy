@@ -1,0 +1,7 @@
+{
+"CLIENT_ID" : "THIS_IS_NOT_REAL.apps.googleusercontent.com",
+"CLIENT_SECRET" : "THIS_IS_SECRET",
+"REDIRECT_URL" : "urn:ietf:wg:oauth:2.0:oob",
+"ACCESS_TYPE" : "offline",
+"SCOPE" : "https://www.googleapis.com/auth/drive"
+}
