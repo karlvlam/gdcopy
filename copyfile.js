@@ -1,5 +1,3 @@
-//導入所需模組
-
 var fs = require('fs');
 var events = require('events');
 var eventEmitter = require('events').EventEmitter;
@@ -177,7 +175,7 @@ function handleJob(){
     if (fun){
         fun(worker, job);
     }
-   
+
 
 }
 
@@ -193,7 +191,7 @@ function checkListedFile(worker){
 
     if(!listedFile){
 
-           }
+    }
 
     return;
 }
@@ -249,7 +247,7 @@ function listFileNew(){
     }
 
 
-    
+
 }
 
 function _renameFile(fileId, title, cb){
@@ -383,9 +381,35 @@ function setPermission(worker, job){
 
     });
 }
+function changeOwner(worker, job){
+    worker['free'] = false;
+    logger.debug(worker.name, 'changeOwner()', JSON.stringify(job));
+    jobs.push(job);
+    logger.warn(jobs);
+    worker['free'] = true;
+}
+
+function removePermission(worker, job){
+    worker['free'] = false;
+    logger.debug(worker.name, 'removePermission()', JSON.stringify(job));
+    jobs.push(job);
+    logger.warn(jobs);
+    worker['free'] = true;
+}
+function markDone(worker, job){
+    worker['free'] = false;
+    logger.debug(worker.name, 'markDone()', JSON.stringify(job));
+    jobs.push(job);
+    logger.warn(jobs);
+    worker['free'] = true;
+}
 
 var handleStatus = {
     'NEW': markFileListed,
     'LISTED': cloneNewFile,
     'COPIED': setPermission,
+    'SET_PERMISSION': changeOwner,
+    'CH_OWNER': removePermission,
+    'RM_PERMISSION': markDone,
+
 }
