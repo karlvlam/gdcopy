@@ -41,7 +41,7 @@ function getAccessToken(oauth2Client) {
             process.exit(1);
         }
 
-        fs.writeFileSync('token.saved',JSON.stringify(tokens));
+        fs.writeFileSync('oauth.token',JSON.stringify(tokens));
         
         infoLogger.info("Get AccessToken Finished.");
     });
