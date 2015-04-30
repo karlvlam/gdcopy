@@ -1,7 +1,6 @@
-Gdcopy2
+gdcopy
 ======
-Gdcopy is a mini project for copying the folder and file to different folder on Google Drive,
-and this project is it's version 2.	
+gdcopy is a mini project for copying the folders and files for ownership transfer on Google Drive,
 
 ***
 Installation
