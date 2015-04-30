@@ -23,13 +23,26 @@ var OAuth2Client = google.auth.OAuth2;
 var setting = JSON.parse(fs.readFileSync('option.conf', 'utf8'));
 var drive = null;
 
+// command input
+var oldOwner = process.argv[2];
+var newOwner = process.argv[3];
+
+if (!oldOwner){
+    printUsage();
+    process.exit(1);
+}
+
 // job queues
 //var listed = []; // jobs with no "GDCOPY_"
 var jobs = []; // jobs with "GDCOPY_"
 
 // create workers
 var listFree = true;
-var workerCount = 2;
+var workerCount = 1;
+try{
+    workerCount = parseInt(process.argv[4]);
+    if(isNaN(workerCount)){ workerCount = 1 };
+}catch(err){}
 var workerWait = 3000;
 var listeners = [];
 
@@ -43,14 +56,6 @@ for (var i = 0; i< workerCount; i++){
     listeners.push(jobListener);
 }
 
-// command input
-var oldOwner = process.argv[2];
-var newOwner = process.argv[3];
-
-if (!oldOwner){
-    printUsage();
-    process.exit(1);
-}
 
 function printUsage(){
 
@@ -277,8 +282,13 @@ function markFileListed(worker, job){
 function cloneNewFile(worker, job){
     worker['free'] = false;
     logger.debug(worker.name, 'cloneNewFile()', JSON.stringify(job));
-    jobs.push(job);
-    worker['free'] = true;
+    drive.parents.list({fileId:job['srcFileId']}, function(err, result){
+        logger.error(worker.name, err);
+        logger.debug(worker.name, result);
+
+        jobs.push(job);
+        worker['free'] = true;
+    });
 
 }
 
