@@ -407,30 +407,35 @@ function cloneNewFile(worker, job){
 function setPermission(worker, job){
     worker['free'] = false;
     logger.debug(worker.name, 'setPermission()', JSON.stringify(job));
-    _listPermission(job['srcFileId'], function(err, result){
-        if (err){
-            logger.error('listPermission error:', err); 
-            worker.free = true;
-            return;
-        }
-        logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
-        /*
-        var opt = {
-            fileId: job['dstFileId'],
-            resource:{
-                premission: ,
+    var chain = new promise.defer();
+    chain
+    .then(getPermission)
+    chain.resolve();
+
+    function getPermission(){
+        var p = new promise.defer();
+        _listPermission(job['srcFileId'], function(err, result){
+            if (err){
+                logger.error('listPermission error:', err); 
+                worker.free = true;
+                return;
             }
-        }
+            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+            job['srcPremissions'] = result.items;
 
-        drive.permissions.patch()
-       */
+           
+            p.resolve();
+            return;
 
-        jobs.push(job);
-        logger.warn(jobs);
-        worker['free'] = true;
-        return;
+        });
+        return p;
+    };
+    /*
+    jobs.push(job);
+    logger.warn(jobs);
+    worker['free'] = true;
+   */
 
-    });
 }
 function changeOwner(worker, job){
     worker['free'] = false;
