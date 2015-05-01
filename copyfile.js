@@ -41,7 +41,7 @@ try{
     workerCount = parseInt(process.argv[4]);
     if(isNaN(workerCount)){ workerCount = 1 };
 }catch(err){}
-var workerWait = 3000;
+var workerWait = 500;
 var listeners = [];
 
 for (var i = 0; i< workerCount; i++){
@@ -268,7 +268,23 @@ function _renameFile(fileId, title, cb){
     })
 
 }
+
 function _listPermission(fileId, cb){
+    var opt = {
+        fileId: fileId,
+    }
+    drive.permissions.list(opt, function(err,result){
+        if (err){
+            cb(err)
+            return;
+        }
+        cb(null, result)
+        return;
+
+    })
+
+}
+function _updatePermission(fileId, cb){
     var opt = {
         fileId: fileId,
     }
@@ -372,7 +388,17 @@ function setPermission(worker, job){
             worker.free = true;
             return;
         }
-        logger.debug('listPermission OK', result);
+        logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+        /*
+        var opt = {
+            fileId: job['dstFileId'],
+            resource:{
+                premission: ,
+            }
+        }
+
+        drive.permissions.patch()
+       */
 
         jobs.push(job);
         logger.warn(jobs);
