@@ -188,10 +188,6 @@ function handleJob(){
 
 }
 
-// if job list empty, find raw files 
-function checkJob(worker){
-
-}
 
 // if listed list empty, find files to the queue
 function checkListedFile(worker){
