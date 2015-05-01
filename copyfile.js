@@ -111,8 +111,13 @@ function createJob(){
 
 // program starts
 checkToken();
-
+var chain = new promise.defer();
+chain
+.then(checkToken)
+.then(runWorker);
+chain.resolve();
 function checkToken(){
+    var p = new promise.defer();
 
     try{
         var oauth2Client = new OAuth2Client(setting.CLIENT_ID,setting.CLIENT_SECRET,setting.REDIRECT_URL);
@@ -134,16 +139,17 @@ function checkToken(){
     //讀取Token並置入Client後，傳回至Drive當中
 
     drive = google.drive({version:'v2',auth:oauth2Client});
+    p.resolve()
 
     //執行runWorker以驅動Worker工作
+    return p;
 
-    runWorker();
 }
 
 function runWorker(){
 
+    var p = new promise.defer();
     setInterval(countAndKick, workerWait);
-
     function countAndKick(){
 
         for (var i = 0; i< workerCount; i++){
@@ -154,6 +160,9 @@ function runWorker(){
 
         }
     }
+
+    p.resolve()
+    return p;
 }
 
 function handleJob(){
