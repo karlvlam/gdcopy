@@ -116,6 +116,7 @@ chain
 .then(checkToken)
 .then(runWorker);
 chain.resolve();
+
 function checkToken(){
     var p = new promise.defer();
 
@@ -329,22 +330,38 @@ function markFileListed(worker, job){
 function cloneNewFile(worker, job){
     worker['free'] = false;
     logger.debug(worker.name, 'cloneNewFile()', JSON.stringify(job));
-    drive.parents.list({fileId:job['srcFileId']}, function(err, result){
-        if (err){
-            logger.error(worker.name, err);
-            worker['free'] = true;
-            return;
-        }
-        logger.debug(worker.name, result);
-        copyFile(result.items);
-    });
+    var chain = new promise.defer();
+    chain
+    .then(getParents)
+    .then(copyFile)
+    .then(rename);
+    chain.resolve();
 
-    function copyFile(parents){
+    function getParents(){
+
+        var p = new promise.defer();
+
+        drive.parents.list({fileId:job['srcFileId']}, function(err, result){
+            if (err){
+                logger.error(worker.name, err);
+                worker['free'] = true;
+                return;
+            }
+            logger.debug(worker.name, result);
+            job['srcParents'] = result.items;
+            p.resolve();
+        });
+
+        return p;
+    }
+
+    function copyFile(){
+        var p = new promise.defer();
         var opt = {
             fileId: job['srcFileId'],
             resource:{
                 title: getPrefix('DST') + '#' + job['oriTitle'],
-                parents: parents,
+                parents: job['srcParents'],
             }
         }
 
@@ -357,12 +374,14 @@ function cloneNewFile(worker, job){
             }
             logger.debug(worker.name, 'copyfile', result);
             job['dstFileId'] = result['id'];
-            rename()
+            p.resolve();
 
         })
+        return p;
     }
 
     function rename(){
+        var p = new promise.defer();
         var title = getPrefix('COPIED') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
@@ -380,6 +399,7 @@ function cloneNewFile(worker, job){
             return;
 
         })
+        return p;
     }
 
 }
