@@ -589,26 +589,27 @@ function setPermission(worker, job){
         });
         return p;
     };
-    function copyPermission(){
+    function copyPermission(opt){
         var p = new promise.defer();
-        var perm = job['srcPremissions'].pop();
+        var idx = opt['idx'];
+        var perm = job['srcPremissions'][idx];
         _copyPermission(job['dstFileId'], perm, function(err, result){
             if(err){
                 logger.error(err);
                 if (err === 'OWNER'){
-                    p.resolve();
+                    p.resolve({idx: idx + 1});
                 }
                 return;
             }
 
             logger.debug(result);
-            p.resolve();
+            p.resolve({idx: idx + 1});
         });
         return p;
     }
 
     function doCopy(){
-        var p = new promise.seq(copyFunList, null);
+        var p = new promise.seq(copyFunList, {idx:0});
         return p;
     };
 
