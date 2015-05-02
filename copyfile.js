@@ -33,6 +33,11 @@ if (!oldOwner || !newOwner){
     printUsage();
     process.exit(1);
 }
+if (oldOwner === newOwner){
+    logger.error('Both owner cannot be the same!');
+    printUsage();
+    process.exit(1);
+}
 
 // job queues
 //var listed = []; // jobs with no "GDCOPY_"
@@ -117,7 +122,7 @@ function createJob(){
 }
 
 // program starts
-checkToken();
+//checkToken();
 var chain = new promise.defer();
 chain
 .then(checkToken)
@@ -298,7 +303,7 @@ function listFileInprogress(){
     }
     // search for WIP files
     var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
-        ' and title contains "GDCOPY_SRC#"';
+        ' and title contains "GDCOPY_SRC#" and not title contains "GDCOPY_DONE_SRC#"';
     drive.files.list({q:query, maxResults: workerCount * 3},queryFile);
 
     function queryFile(err,files){
