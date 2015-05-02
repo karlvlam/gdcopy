@@ -206,11 +206,11 @@ function handleJob(){
             return;
         }
         listFileNew(worker);
-        freeWorker(worker); // free the worker
+        //freeWorker(worker); // free the worker
         return;
     } 
 
-    var job = jobs.pop();
+    var job = jobs.shift();
     var fun = handleStatus[job['status']];
     if (fun){
         fun(worker, job);
@@ -395,6 +395,7 @@ function listFileNew(worker){
 
         logger.debug(names);
         listFree = true;
+        freeWorker(worker);
 
     }
 
