@@ -41,6 +41,9 @@ try{
     workerCount = parseInt(process.argv[4]);
     if(isNaN(workerCount)){ workerCount = 1 };
 }catch(err){}
+if (workerCount > 100){
+    workerCount = 1;
+}
 var workerWait = 500;
 var listeners = [];
 
@@ -57,7 +60,7 @@ for (var i = 0; i< workerCount; i++){
 
 function printUsage(){
 
-    var out = "Usgae: " + process.argv[1] + " [Old owner's mail address]";
+    var out = "Usgae: " + process.argv[1] + " [OLD OWNER EMAIL] [NEW OWNER EMAIL] [NUMBER OF WORKERS]" ;
 
     console.log(out);
 }
@@ -114,6 +117,7 @@ checkToken();
 var chain = new promise.defer();
 chain
 .then(checkToken)
+.then(listFileInprogress)
 .then(runWorker);
 chain.resolve();
 
@@ -204,12 +208,54 @@ function handleJob(){
 function listFileInprogress(){
     var p = new promise.defer();
     var folder = '"application/vnd.google-apps.folder"';
+    var o = {
+        srcTitle: null,
+        oriTitle: null,
+        srcFileId: null,
+        dstFileId: null,
+        status: null,
+        oldOwner: null,
+        newOwner: null,
+        srcParents: [],
+        srcPremissions: [],
+    }
 
+    function classifyJob(file){
+        var job = createJob();
+        job['srcFileId'] = file['id'];
+        job['srcTitle'] = file['title'];
 
+        var titles = file['title'].split("#");
+        if (titles.length < 5){
+            return null;
+        }
+
+        job['status'] = getStatus(file['title']);
+        if (!job['status']){
+            return null;
+        }
+
+        if (job['srcFileId'] !== titles[2]) {
+            return null;
+        }
+
+        job['dstFileId'] = titles[3];
+
+        job['oriTitle'] = "";
+        for (var i=4; i < titles.length; i++){
+            job['oriTitle'] += titles[i];
+            if (i !== titles.length-1){
+                job['oriTitle'] += "#";
+            }
+        }
+
+        return job;
+
+    }
     // search for WIP files
     var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
         ' and title contains "GDCOPY_SRC#"';
-    drive.files.list({q:query, maxResults: 100},queryFile);
+    drive.files.list({q:query, maxResults: workerCount * 3},queryFile);
 
     function queryFile(err,files){
 
@@ -226,19 +272,16 @@ function listFileInprogress(){
             return;
         }
 
-        // create the first status of jobs to the job list
         var fileList = files.items;
-        //logger.debug(JSON.stringify(fileList, null, 2));
         var names = [];
         for (var i = 0; i < fileList.length; i++){
             var f = fileList[i];
-            var job = createJob();
-            job['srcFileId'] = f['id'];
-            job['oriTitle'] = f['title'];
-            job['status'] = 'NEW';
-            jobs.push(job);
+            var job = classifyJob(f);
+            if (job){
+                jobs.push(job);
+            }
+            logger.warn(job);
 
-            names.push(f['id'] + '#' + f['title']);
 
         }
 
