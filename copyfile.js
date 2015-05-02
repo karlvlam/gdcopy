@@ -397,6 +397,70 @@ function _updatePermission(fileId, cb){
 
 }
 
+function _copyPermission(fileId, perm, cb){
+    // skip non-user permission 
+    if (!perm['emailAddress']){
+        cb('NO_EMAIL');
+        return;
+    }
+    // skip deleted users
+    if (perm['emailAddress'] && perm['emailAddress'] === ''){
+        cb('NO_USER');
+        return;
+    }
+
+    if (perm['id'] === 'anyoneWithLink'){
+        cb('SHARE_LINK');
+        return;
+    }
+
+    // skip owner
+    if (!(perm['role'] === 'writer' || perm['role'] === 'reader') ){
+        cb('OWNER');
+        return;
+    }
+
+    // skip types other then 
+    if (!(perm['type'] === 'user' || perm['type'] === 'group') ){
+        cb('SKIP_TYPE');
+        return;
+    }
+    var opt = {
+        fileId: fileId,
+        sendNotificationEmails:false,
+        permissionId: perm['id'],
+        resource: {
+            role: perm['role'],
+            type: perm['type'],
+            id: perm['id'],
+        },
+
+    }
+    if (perm['additionalRoles']){
+        opt['resource']['additionalRoles'] = perm['additionalRoles'];
+    }
+
+    drive.permissions.insert(opt, function(err, result){
+        if (err){
+            logger.error(err);
+            cb(err);
+        }
+        //logger.debug(result);
+        _patchPermission();
+    });
+
+    function _patchPermission(){
+        drive.permissions.patch(opt, function(err, result){
+            if (err){
+                logger.error(err);
+                cb(err);
+            }
+            logger.debug(result);
+            cb(null, result);
+        });
+    };
+
+}
 function markFileListed(worker, job){
     lockWorker(worker);
 
@@ -501,6 +565,7 @@ function setPermission(worker, job){
     var chain = new promise.defer();
     chain
     .then(getPermission)
+    .then(copyPermission)
     chain.resolve();
 
     function getPermission(){
@@ -521,6 +586,22 @@ function setPermission(worker, job){
         });
         return p;
     };
+    function copyPermission(){
+        var p = new promise.defer();
+        for(var i=0; i < job['srcPremissions'].length; i++){
+            var perm = job['srcPremissions'][i];
+            _copyPermission(job['dstFileId'], perm, function(err, result){
+                if(err){
+                    logger.error(err);
+                    return;
+                }
+
+                logger.debug(result);
+            });
+        }
+        return p;
+    };
+
     /*
     jobs.push(job);
     logger.warn(jobs);
