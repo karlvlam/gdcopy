@@ -26,6 +26,8 @@ var oldOwner = process.argv[2];
 var newOwner = process.argv[3];
 
 var newOwnerPermId = null;
+var runnerEmail = null;
+var runnerPermId = null;
 
 if (!oldOwner || !newOwner){
     printUsage();
@@ -119,6 +121,7 @@ checkToken();
 var chain = new promise.defer();
 chain
 .then(checkToken)
+.then(getRunner)
 .then(getOwnerPermId)
 .then(listFileInprogress)
 .then(runWorker);
@@ -206,6 +209,25 @@ function handleJob(){
     }
 
 
+}
+function getRunner(){
+
+    var p = new promise.defer();
+    drive.about.get(function(err, result){
+        if (err){
+            logger.error('getRunner:', err);
+            process.exit(1);
+            return;
+        }
+
+        logger.info('runnerInfo:', result.user);
+        runnerEmail = result['user']['emailAddress'];
+        runnerPermId = result['user']['permissionId'];
+        p.resolve();
+
+    });
+
+    return p;
 }
 
 function getOwnerPermId(){
@@ -481,6 +503,37 @@ function _copyPermission(fileId, perm, cb){
     };
 
 }
+
+function _deletePermission(fileId, perm, cb){
+    // skip non-user permission 
+    if (!perm['emailAddress']){
+        cb('NO_EMAIL');
+        return;
+    }
+
+    // skip owner
+    if (!(perm['role'] === 'writer' || perm['role'] === 'reader') ){
+        cb('OWNER');
+        return;
+    }
+
+    var opt = {
+        fileId: fileId,
+        permissionId: perm['id'],
+    }
+
+    drive.permissions.delete(opt, function(err, result){
+        if (err){
+            cb(err);
+            return;
+        }
+        cb(null, result);
+        _patchPermission();
+    });
+
+}
+
+
 
 function _getPermissionId(email, cb){
     var opt = {
@@ -779,6 +832,100 @@ function removePermission(worker, job){
     logger.warn(jobs);
     freeWorker(worker);
 }
+function removePermission(worker, job){
+    lockWorker(worker);
+    logger.debug(worker.name, 'removePermission()', JSON.stringify(job));
+    var removeFunList = [];
+    var chain = new promise.defer();
+    chain
+    .then(getPermission)
+    //.then(doRemove)
+    //.then(rename)
+    chain.resolve();
+
+    function getPermission(){
+        var p = new promise.defer();
+        _listPermission(job['srcFileId'], function(err, result){
+            if (err){
+                logger.error('listPermission error:', err); 
+                worker.free = true;
+                return;
+            }
+            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+            job['srcPremissions'] = result.items;
+
+            for(var i=0; i < job['srcPremissions'].length; i++){
+                removeFunList.push(rmPermission);
+
+            }
+          
+            p.resolve();
+            return;
+
+        });
+        return p;
+    };
+    function rmPermission(opt){
+        var p = new promise.defer();
+        var idx = opt['idx'];
+        var perm = job['srcPremissions'][idx];
+        _deletePermission(job['srcFileId'], perm, function(err, result){
+            if(err){
+                logger.error(err);
+                if (err === 'OWNER'){
+                    p.resolve({idx: idx + 1});
+                    return;
+                }
+
+                if(err.toString() === 'Error: The owner of a file cannot be removed.'){
+                    p.resolve({idx: idx + 1});
+                    return;
+                }
+                return;
+            }
+
+            logger.debug(result);
+            p.resolve({idx: idx + 1});
+        });
+        return p;
+    }
+
+    function doRemove(){
+        var p = new promise.seq(removeFunList, {idx:0});
+        return p;
+    };
+
+
+    function rename(){
+        var p = new promise.defer();
+        var title = getPrefix('RM_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
+        _renameFile(job['srcFileId'], title, function(err, file){
+            if (err){
+                logger.error('rename error:', err); 
+                worker.free = true;
+                return;
+            }
+            job['srcTitle'] = file['title']
+            job['status'] = getStatus(file['title']);
+            logger.debug('RM_PERMISSION successed!', job);
+
+            jobs.push(job);
+            logger.warn(jobs);
+            freeWorker(worker);
+            return;
+
+        })
+        return p;
+    }
+
+    /*
+    jobs.push(job);
+    logger.warn(jobs);
+    freeWorker(worker);
+   */
+
+};
+
 function markDone(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'markDone()', JSON.stringify(job));
