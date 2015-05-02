@@ -616,10 +616,26 @@ function setPermission(worker, job){
 
     function rename(){
         var p = new promise.defer();
-        logger.info('copy permission DONE!');
-        p.resolve();
+        var title = getPrefix('SET_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
+        _renameFile(job['srcFileId'], title, function(err, file){
+            if (err){
+                logger.error('rename error:', err); 
+                worker.free = true;
+                return;
+            }
+            job['srcTitle'] = file['title']
+            job['status'] = getStatus(file['title']);
+            logger.debug('SET_PERMISSION successed!', job);
+
+            jobs.push(job);
+            logger.warn(jobs);
+            freeWorker(worker);
+            return;
+
+        })
         return p;
     }
+
     /*
     jobs.push(job);
     logger.warn(jobs);
