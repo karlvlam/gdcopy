@@ -917,9 +917,53 @@ function removePermission(worker, job){
 function markDone(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'markDone()', JSON.stringify(job));
-    jobs.push(job);
-    logger.warn(jobs);
-    freeWorker(worker);
+
+    var chain = new promise.defer();
+    chain
+    .then(renameDstFile)
+    .then(renameSrcFile)
+    chain.resolve();
+    function renameDstFile(){
+        var p = new promise.defer();
+        var title = job['oriTitle'];
+        _renameFile(job['dstFileId'], title, function(err, file){
+            if (err){
+                logger.error('rename error:', err); 
+                worker.free = true;
+                return;
+            }
+            job['dstTitle'] = file['title']
+            p.resolve();
+
+            return;
+
+        })
+        return p;
+    }
+    function renameSrcFile(){
+        var p = new promise.defer();
+        var title = getPrefix('DONE') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
+        _renameFile(job['srcFileId'], title, function(err, file){
+            if (err){
+                logger.error('rename error:', err); 
+                worker.free = true;
+                return;
+            }
+            job['srcTitle'] = file['title']
+            job['status'] = getStatus(file['title']);
+            logger.debug('DONE successed!', job);
+
+            logger.warn(jobs);
+            p.resolve();
+            freeWorker(worker);
+            return;
+
+        })
+        return p;
+    }
+
+
+
 }
 
 var handleStatus = {
