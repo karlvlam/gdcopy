@@ -53,8 +53,7 @@ try{
 if (workerCount > 100){
     workerCount = 1;
 }
-//var workerWait = 491;
-var workerWait = 101;
+var workerWait = 29;
 var listeners = [];
 
 for (var i = 0; i< workerCount; i++){
@@ -169,10 +168,12 @@ function lockWorker(worker){
         return false;
     }
     worker['free'] = false;
+    //logger.warn(worker.name, 'locked!')
     return true;
 }
 function freeWorker(worker){
     worker['free'] = true;
+    //logger.warn(worker.name, 'free!')
     return true;
 }
 
@@ -184,9 +185,10 @@ function runWorker(){
 
         for (var i = 0; i< workerCount; i++){
 
-            var work = listeners[i];
+            var worker = listeners[i];
 
-            work.emit('handleJob');
+            worker.emit('handleJob');
+            //logger.warn(worker.name, 'emit handleJob');
 
         }
     }
@@ -201,18 +203,19 @@ function handleJob(){
         return;
     }
 
-    logger.debug(worker.name, 'handleJob()');
-    if (jobs.length === 0){
-        if (!listFree){
-            return;
-        }
+    //logger.debug(worker.name, 'handleJob()');
+    if (jobs.length === 0 && listFree){
         listFileNew(worker);
-        //freeWorker(worker); // free the worker
         return;
     } 
 
-    var job = jobs.shift();
+    if (jobs.length === 0){
+        freeWorker(worker);
+        return;
+    }
+    var job = jobs.pop();
     var fun = handleStatus[job['status']];
+    logger.warn(worker.name, job['status']);
     if (fun){
         fun(worker, job);
     }
@@ -312,7 +315,7 @@ function listFileInprogress(){
 
     function queryFile(err,files){
 
-        console.log('Searching Files.....');
+        console.log('Searching WIP Files.....');
 
         if (err){
 
@@ -353,7 +356,7 @@ function listFileNew(worker){
         return;
     }
     listFree = false; // lock list file function
-    logger.debug(worker.name, 'listFileNew()');
+    //logger.debug(worker.name, 'listFileNew()');
     var folder = '"application/vnd.google-apps.folder"';
 
     //var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
@@ -365,7 +368,7 @@ function listFileNew(worker){
 
     function queryFile(err,files){
 
-        console.log('Searching Files.....');
+        console.log('Searching New Files.....');
 
         if (err){
 
@@ -395,8 +398,10 @@ function listFileNew(worker){
         }
 
         logger.debug(names);
-        listFree = true;
-        freeWorker(worker);
+        setTimeout(function(worker){
+            listFree = true;
+            freeWorker(worker);
+        }, 10000, worker);
 
     }
 
