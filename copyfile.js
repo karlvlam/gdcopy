@@ -200,9 +200,12 @@ function handleJob(){
         return;
     }
 
+    logger.debug(worker.name, 'handleJob()');
     if (jobs.length === 0){
-        logger.debug('listFileNew()');
-        listFileNew();
+        if (!listFree){
+            return;
+        }
+        listFileNew(worker);
         freeWorker(worker); // free the worker
         return;
     } 
@@ -344,11 +347,12 @@ function listFileInprogress(){
 }
 
 
-function listFileNew(){
+function listFileNew(worker){
     if (!listFree){
         return;
     }
     listFree = false; // lock list file function
+    logger.debug(worker.name, 'listFileNew()');
     var folder = '"application/vnd.google-apps.folder"';
 
     //var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
