@@ -664,6 +664,12 @@ function setPermission(worker, job){
                 logger.error(err);
                 if (err === 'OWNER'){
                     p.resolve({idx: idx + 1});
+                    return;
+                }
+
+                if(err.toString() === 'Error: The owner of a file cannot be removed.'){
+                    p.resolve({idx: idx + 1});
+                    return;
                 }
                 return;
             }
@@ -718,6 +724,7 @@ function changeOwner(worker, job){
     var chain = new promise.defer();
     chain
     .then(changeOwner)
+    .then(rename)
     chain.resolve();
 
     function changeOwner(){
@@ -731,8 +738,30 @@ function changeOwner(worker, job){
             }
 
             logger.debug(result);
+            p.resolve();
         });
 
+        return p;
+    }
+    function rename(){
+        var p = new promise.defer();
+        var title = getPrefix('CH_OWNER') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
+        _renameFile(job['srcFileId'], title, function(err, file){
+            if (err){
+                logger.error('rename error:', err); 
+                worker.free = true;
+                return;
+            }
+            job['srcTitle'] = file['title']
+            job['status'] = getStatus(file['title']);
+            logger.debug('CH_OWNER successed!', job);
+
+            jobs.push(job);
+            logger.warn(jobs);
+            freeWorker(worker);
+            return;
+
+        })
         return p;
     }
 
