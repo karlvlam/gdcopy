@@ -25,7 +25,9 @@ var drive = null;
 var oldOwner = process.argv[2];
 var newOwner = process.argv[3];
 
-if (!oldOwner){
+var newOwnerPermId = null;
+
+if (!oldOwner || !newOwner){
     printUsage();
     process.exit(1);
 }
@@ -117,6 +119,7 @@ checkToken();
 var chain = new promise.defer();
 chain
 .then(checkToken)
+.then(getOwnerPermId)
 .then(listFileInprogress)
 .then(runWorker);
 chain.resolve();
@@ -203,6 +206,25 @@ function handleJob(){
     }
 
 
+}
+
+function getOwnerPermId(){
+
+    var p = new promise.defer();
+    _getPermissionId(newOwner, function(err, result){
+        if (err){
+            logger.error('newOwnerPermId:', err);
+            process.exit(1);
+            return;
+        }
+
+        logger.debug(result);
+        newOwnerPermId = result.id;
+        logger.info('newOwnerPermId:', newOwnerPermId);
+        p.resolve();
+    });
+
+    return p;
 }
 
 function listFileInprogress(){
@@ -452,12 +474,56 @@ function _copyPermission(fileId, perm, cb){
         drive.permissions.patch(opt, function(err, result){
             if (err){
                 cb(err);
+                return;
             }
             cb(null, result);
         });
     };
 
 }
+
+function _getPermissionId(email, cb){
+    var opt = {
+        email: email,
+    }
+    drive.permissions.getIdForEmail(opt, function(err,result){
+        if (err){
+            cb(err)
+            return;
+        }
+        if (result.id.match(/i$/)){
+            cb('INVALID_EMAIL');
+            return;
+        }
+        cb(null, result)
+        return;
+
+    })
+
+}
+function _changeOwner(fileId, ownerPermId, cb){
+    var opt = {
+        fileId: fileId,
+        sendNotificationEmails:false,
+        permissionId: ownerPermId,
+        resource: {
+            role: 'owner',
+            type: 'user',
+            id: ownerPermId,
+        },
+
+    }
+
+    drive.permissions.insert(opt, function(err, result){
+        if (err){
+            cb(err);
+            return;
+        }
+        cb(null, result);
+    });
+
+}
+
 function markFileListed(worker, job){
     lockWorker(worker);
 
@@ -646,9 +712,35 @@ function setPermission(worker, job){
 function changeOwner(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'changeOwner()', JSON.stringify(job));
+
+    var ownerId = null;
+
+    var chain = new promise.defer();
+    chain
+    .then(changeOwner)
+    chain.resolve();
+
+    function changeOwner(){
+
+        var p = new promise.defer();
+        _changeOwner(job['dstFileId'], newOwnerPermId, function(err, result){
+            if (err){
+                logger.error(err);
+                process.exit(1);
+                return;
+            }
+
+            logger.debug(result);
+        });
+
+        return p;
+    }
+
+    /*
     jobs.push(job);
     logger.warn(jobs);
     freeWorker(worker);
+   */
 }
 
 function removePermission(worker, job){
