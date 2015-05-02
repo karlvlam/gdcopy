@@ -516,6 +516,10 @@ function _deletePermission(fileId, perm, cb){
         cb('OWNER');
         return;
     }
+    if (perm['id'] === runnerPermId){
+        cb('RUNNER_ID');
+        return;
+    }
 
     var opt = {
         fileId: fileId,
@@ -528,7 +532,6 @@ function _deletePermission(fileId, perm, cb){
             return;
         }
         cb(null, result);
-        _patchPermission();
     });
 
 }
@@ -839,8 +842,8 @@ function removePermission(worker, job){
     var chain = new promise.defer();
     chain
     .then(getPermission)
-    //.then(doRemove)
-    //.then(rename)
+    .then(doRemove)
+    .then(rename)
     chain.resolve();
 
     function getPermission(){
@@ -872,7 +875,7 @@ function removePermission(worker, job){
         _deletePermission(job['srcFileId'], perm, function(err, result){
             if(err){
                 logger.error(err);
-                if (err === 'OWNER'){
+                if (err === 'OWNER' || err === 'RUNNER_ID'){
                     p.resolve({idx: idx + 1});
                     return;
                 }
@@ -884,7 +887,7 @@ function removePermission(worker, job){
                 return;
             }
 
-            logger.debug(result);
+            logger.debug('Permission removed:', perm);
             p.resolve({idx: idx + 1});
         });
         return p;
