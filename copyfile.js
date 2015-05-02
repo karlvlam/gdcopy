@@ -53,7 +53,8 @@ try{
 if (workerCount > 100){
     workerCount = 1;
 }
-var workerWait = 491;
+//var workerWait = 491;
+var workerWait = 101;
 var listeners = [];
 
 for (var i = 0; i< workerCount; i++){
