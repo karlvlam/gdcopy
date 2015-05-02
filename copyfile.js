@@ -764,11 +764,6 @@ function setPermission(worker, job){
         return p;
     }
 
-    /*
-    jobs.push(job);
-    logger.warn(jobs);
-    freeWorker(worker);
-   */
 
 };
 function changeOwner(worker, job){
@@ -821,11 +816,6 @@ function changeOwner(worker, job){
         return p;
     }
 
-    /*
-    jobs.push(job);
-    logger.warn(jobs);
-    freeWorker(worker);
-   */
 }
 
 function removePermission(worker, job){
@@ -921,11 +911,6 @@ function removePermission(worker, job){
         return p;
     }
 
-    /*
-    jobs.push(job);
-    logger.warn(jobs);
-    freeWorker(worker);
-   */
 
 };
 
