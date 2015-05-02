@@ -147,6 +147,19 @@ function checkToken(){
 
 }
 
+
+function lockWorker(worker){
+    if (!worker['free']){
+        return false;
+    }
+    worker['free'] = false;
+    return true;
+}
+function freeWorker(worker){
+    worker['free'] = true;
+    return true;
+}
+
 function runWorker(){
 
     var p = new promise.defer();
@@ -168,15 +181,14 @@ function runWorker(){
 
 function handleJob(){
     var worker = this;
-    if (!worker.free){
+    if (!lockWorker(worker)){
         return;
     }
-    worker.free = false; // lock worker
 
     if (jobs.length === 0){
         logger.debug('listFileNew()');
         listFileNew();
-        worker.free = true; // free the worker
+        freeWorker(worker); // free the worker
         return;
     } 
 
@@ -189,18 +201,56 @@ function handleJob(){
 
 }
 
+function listFileInprogress(){
+    var p = new promise.defer();
+    var folder = '"application/vnd.google-apps.folder"';
 
-// if listed list empty, find files to the queue
-function checkListedFile(worker){
 
-    var listedFile = listed.pop();
+    // search for WIP files
+    var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
+        ' and title contains "GDCOPY_SRC#"';
+    drive.files.list({q:query, maxResults: 100},queryFile);
 
-    if(!listedFile){
+    function queryFile(err,files){
+
+        console.log('Searching Files.....');
+
+        if (err){
+
+            if (err['code'] === 401){
+                logger.error('Invalid Credentials!');
+                process.exit(401);
+            }
+
+            logger.error(err);
+            return;
+        }
+
+        // create the first status of jobs to the job list
+        var fileList = files.items;
+        //logger.debug(JSON.stringify(fileList, null, 2));
+        var names = [];
+        for (var i = 0; i < fileList.length; i++){
+            var f = fileList[i];
+            var job = createJob();
+            job['srcFileId'] = f['id'];
+            job['oriTitle'] = f['title'];
+            job['status'] = 'NEW';
+            jobs.push(job);
+
+            names.push(f['id'] + '#' + f['title']);
+
+        }
+
+        logger.debug(names);
+        listFree = true;
+        p.resolve();
 
     }
 
-    return;
+    return p;
 }
+
 
 function listFileNew(){
     if (!listFree){
@@ -251,8 +301,6 @@ function listFileNew(){
         listFree = true;
 
     }
-
-
 
 }
 
@@ -307,7 +355,7 @@ function _updatePermission(fileId, cb){
 }
 
 function markFileListed(worker, job){
-    worker['free'] = false;
+    lockWorker(worker);
 
     _renameFile(job['srcFileId'], getPrefix('LISTED') + '#' + job['srcFileId']+ '#NULL#' + job['oriTitle'], function(err, file){
         if (err){
@@ -321,14 +369,14 @@ function markFileListed(worker, job){
 
         jobs.push(job);
         logger.warn(jobs);
-        worker['free'] = true;
+        freeWorker(worker);
         return;
 
     })
 }
 
 function cloneNewFile(worker, job){
-    worker['free'] = false;
+    lockWorker(worker);
     logger.debug(worker.name, 'cloneNewFile()', JSON.stringify(job));
     var chain = new promise.defer();
     chain
@@ -344,7 +392,7 @@ function cloneNewFile(worker, job){
         drive.parents.list({fileId:job['srcFileId']}, function(err, result){
             if (err){
                 logger.error(worker.name, err);
-                worker['free'] = true;
+                freeWorker(worker);
                 return;
             }
             logger.debug(worker.name, result);
@@ -369,7 +417,7 @@ function cloneNewFile(worker, job){
         drive.files.copy(opt, function(err, result){
             if (err){
                 logger.error(worker.name, 'copyfile', err);
-                worker['free'] = true;
+                freeWorker(worker);
                 return;
             }
             logger.debug(worker.name, 'copyfile', result);
@@ -395,7 +443,7 @@ function cloneNewFile(worker, job){
 
             jobs.push(job);
             logger.warn(jobs);
-            worker['free'] = true;
+            freeWorker(worker);
             return;
 
         })
@@ -405,7 +453,7 @@ function cloneNewFile(worker, job){
 }
 
 function setPermission(worker, job){
-    worker['free'] = false;
+    lockWorker(worker);
     logger.debug(worker.name, 'setPermission()', JSON.stringify(job));
     var chain = new promise.defer();
     chain
@@ -433,31 +481,31 @@ function setPermission(worker, job){
     /*
     jobs.push(job);
     logger.warn(jobs);
-    worker['free'] = true;
+    freeWorker(worker);
    */
 
 }
 function changeOwner(worker, job){
-    worker['free'] = false;
+    lockWorker(worker);
     logger.debug(worker.name, 'changeOwner()', JSON.stringify(job));
     jobs.push(job);
     logger.warn(jobs);
-    worker['free'] = true;
+    freeWorker(worker);
 }
 
 function removePermission(worker, job){
-    worker['free'] = false;
+    lockWorker(worker);
     logger.debug(worker.name, 'removePermission()', JSON.stringify(job));
     jobs.push(job);
     logger.warn(jobs);
-    worker['free'] = true;
+    freeWorker(worker);
 }
 function markDone(worker, job){
-    worker['free'] = false;
+    lockWorker(worker);
     logger.debug(worker.name, 'markDone()', JSON.stringify(job));
     jobs.push(job);
     logger.warn(jobs);
-    worker['free'] = true;
+    freeWorker(worker);
 }
 
 var handleStatus = {
