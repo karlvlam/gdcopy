@@ -442,7 +442,6 @@ function _copyPermission(fileId, perm, cb){
 
     drive.permissions.insert(opt, function(err, result){
         if (err){
-            logger.error(err);
             cb(err);
         }
         //logger.debug(result);
@@ -452,10 +451,8 @@ function _copyPermission(fileId, perm, cb){
     function _patchPermission(){
         drive.permissions.patch(opt, function(err, result){
             if (err){
-                logger.error(err);
                 cb(err);
             }
-            logger.debug(result);
             cb(null, result);
         });
     };
