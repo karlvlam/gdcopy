@@ -53,7 +53,7 @@ try{
 if (workerCount > 100){
     workerCount = 1;
 }
-var workerWait = 500;
+var workerWait = 491;
 var listeners = [];
 
 for (var i = 0; i< workerCount; i++){
@@ -210,7 +210,7 @@ function handleJob(){
         return;
     } 
 
-    var job = jobs.shift();
+    var job = jobs.pop();
     var fun = handleStatus[job['status']];
     if (fun){
         fun(worker, job);
