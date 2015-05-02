@@ -559,10 +559,12 @@ function cloneNewFile(worker, job){
 function setPermission(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'setPermission()', JSON.stringify(job));
+    var copyFunList = [];
     var chain = new promise.defer();
     chain
     .then(getPermission)
-    .then(copyPermission)
+    .then(doCopy)
+    .then(rename)
     chain.resolve();
 
     function getPermission(){
@@ -576,7 +578,11 @@ function setPermission(worker, job){
             logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
             job['srcPremissions'] = result.items;
 
-           
+            for(var i=0; i < job['srcPremissions'].length; i++){
+                copyFunList.push(copyPermission);
+
+            }
+          
             p.resolve();
             return;
 
@@ -585,27 +591,41 @@ function setPermission(worker, job){
     };
     function copyPermission(){
         var p = new promise.defer();
-        for(var i=0; i < job['srcPremissions'].length; i++){
-            var perm = job['srcPremissions'][i];
-            _copyPermission(job['dstFileId'], perm, function(err, result){
-                if(err){
-                    logger.error(err);
-                    return;
+        var perm = job['srcPremissions'].pop();
+        _copyPermission(job['dstFileId'], perm, function(err, result){
+            if(err){
+                logger.error(err);
+                if (err === 'OWNER'){
+                    p.resolve();
                 }
+                return;
+            }
 
-                logger.debug(result);
-            });
-        }
+            logger.debug(result);
+            p.resolve();
+        });
+        return p;
+    }
+
+    function doCopy(){
+        var p = new promise.seq(copyFunList, null);
         return p;
     };
 
+
+    function rename(){
+        var p = new promise.defer();
+        logger.info('copy permission DONE!');
+        p.resolve();
+        return p;
+    }
     /*
     jobs.push(job);
     logger.warn(jobs);
     freeWorker(worker);
    */
 
-}
+};
 function changeOwner(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'changeOwner()', JSON.stringify(job));
