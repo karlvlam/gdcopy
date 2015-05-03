@@ -173,7 +173,6 @@ function lockWorker(worker){
 }
 function freeWorker(worker){
     worker['free'] = true;
-    logger.warn(worker.name, 'worker free!')
     return true;
 }
 
@@ -738,21 +737,28 @@ function setPermission(worker, job){
         }
         _copyPermission(job['dstFileId'], perm, function(err, result){
             if(err){
+
+                if (err === 'OWNER' || 
+                    err === 'NO_EMAIL' ||
+                    err === 'NO_USER' ||
+                    err === 'SHARE_LINK' ||
+                    err === 'SKIP_TYPE' 
+                   ){
+                       logger.warn('skipped:', err);
+                       p.resolve({idx: idx + 1});
+                       return;
+                   }
+
+                if(err.toString().match(/The owner of a file cannot be removed/) || 
+                   err.toString().match(/Permission not found/) || 
+                   err.toString().match(/Permission ID mismatch/) ){
+
+                    logger.warn('skipped:', err.toString());
+                    p.resolve({idx: idx + 1});
+                    return;
+                }
+
                 logger.error(err.toString());
-                if (err === 'OWNER'){
-                    p.resolve({idx: idx + 1});
-                    return;
-                }
-
-                if(err.toString() === 'Error: The owner of a file cannot be removed.'){
-                    p.resolve({idx: idx + 1});
-                    return;
-                }
-                if(err.toString().match(/Permission not found/) || err.toString().match(/Permission ID mismatch/)){
-                    p.resolve({idx: idx + 1});
-                    return;
-                }
-
                 return;
             }
 
@@ -847,13 +853,6 @@ function changeOwner(worker, job){
 function removePermission(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'removePermission()', JSON.stringify(job));
-    jobs.push(job);
-    logger.warn(jobs);
-    freeWorker(worker);
-}
-function removePermission(worker, job){
-    lockWorker(worker);
-    logger.debug(worker.name, 'removePermission()', JSON.stringify(job));
     var removeFunList = [];
     var chain = new promise.defer();
     chain
@@ -890,16 +889,25 @@ function removePermission(worker, job){
         var perm = job['srcPremissions'][idx];
         _deletePermission(job['srcFileId'], perm, function(err, result){
             if(err){
-                logger.error(err);
-                if (err === 'OWNER' || err === 'RUNNER_ID'){
-                    p.resolve({idx: idx + 1});
-                    return;
-                }
+                if (err === 'OWNER' || 
+                    err === 'NO_EMAIL' ||
+                    err === 'NO_USER' ||
+                    err === 'RUNNER_ID' 
+                   ){
+                       logger.warn('skipped:', err);
+                       p.resolve({idx: idx + 1});
+                       return;
+                   }
 
-                if(err.toString() === 'Error: The owner of a file cannot be removed.'){
+                if(err.toString().match(/The owner of a file cannot be removed/) || 
+                   err.toString().match(/Permission not found/) || 
+                   err.toString().match(/Permission ID mismatch/) ){
+
+                    logger.warn('skipped:', err.toString());
                     p.resolve({idx: idx + 1});
                     return;
                 }
+                logger.error(err);
                 return;
             }
 
