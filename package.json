@@ -1,6 +1,6 @@
 {
   "name": "gdcopy",
-  "description": "gdcopy",
+  "description": "Google Drive copy tool for account migration",
   "version": "0.0.1",
   "author": "Sardo Ip<sardo.ip@nxtomo.hk>, Karl Lam<karl.lam@nxtomo.hk>",
   "dependencies": {
@@ -10,7 +10,7 @@
     "promised-io": "0.3.5",
     "shelljs":"*"
   },
-  "license": "MIT",
+  "license": "GPLv3",
   "engines": {
     "node": ">=0.10"
   },
