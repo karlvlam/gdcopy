@@ -204,7 +204,7 @@ function handleJob(){
         return;
     }
 
-    var freeWorkerCount = 0;
+    var freeWorkerCount = 1; // this "free" worker counts one
     for (var i = 0; i< workerCount; i++){
         if(listeners[i]['free']){
             freeWorkerCount++;
