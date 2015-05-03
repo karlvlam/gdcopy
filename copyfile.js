@@ -173,7 +173,7 @@ function lockWorker(worker){
 }
 function freeWorker(worker){
     worker['free'] = true;
-    //logger.warn(worker.name, 'free!')
+    logger.warn(worker.name, 'worker free!')
     return true;
 }
 
@@ -311,7 +311,7 @@ function listFileInprogress(){
     // search for WIP files
     var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
         ' and title contains "GDCOPY_SRC#" and not title contains "GDCOPY_DONE_SRC#"';
-    drive.files.list({q:query, maxResults: workerCount * 3},queryFile);
+    drive.files.list({q:query, maxResults: 200},queryFile);
 
     function queryFile(err,files){
 
@@ -731,9 +731,14 @@ function setPermission(worker, job){
         var p = new promise.defer();
         var idx = opt['idx'];
         var perm = job['srcPremissions'][idx];
+        if (perm['id'].match(/i$/)){
+            logger.warn('skip Permission ID:', perm['id']);
+            p.resolve({idx: idx + 1});
+            return p;
+        }
         _copyPermission(job['dstFileId'], perm, function(err, result){
             if(err){
-                logger.error(err);
+                logger.error(err.toString());
                 if (err === 'OWNER'){
                     p.resolve({idx: idx + 1});
                     return;
@@ -743,6 +748,11 @@ function setPermission(worker, job){
                     p.resolve({idx: idx + 1});
                     return;
                 }
+                if(err.toString().match(/Permission not found/) || err.toString().match(/Permission ID mismatch/)){
+                    p.resolve({idx: idx + 1});
+                    return;
+                }
+
                 return;
             }
 
@@ -967,7 +977,7 @@ function markDone(worker, job){
             }
             job['srcTitle'] = file['title']
             job['status'] = getStatus(file['title']);
-            logger.debug('DONE successed!', job);
+            logger.info(worker.name, 'DONE successed!', job['dstTitle']);
 
             logger.warn(jobs);
             p.resolve();
