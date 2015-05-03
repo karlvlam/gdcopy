@@ -1,6 +1,8 @@
 var fs = require('fs');
 var events = require('events');
 var eventEmitter = require('events').EventEmitter;
+var http = require('http');
+http.globalAgent.maxSockets = 100;
 
 var google = require('googleapis');
 var promise = require('promised-io');
@@ -202,11 +204,20 @@ function handleJob(){
         return;
     }
 
+    var freeWorkerCount = 0;
+    for (var i = 0; i< workerCount; i++){
+        if(listeners[i]['free']){
+            freeWorkerCount++;
+        }
+
+    }
+
     //logger.debug(worker.name, 'handleJob()');
-    if (jobs.length === 0 && listFree){
-        listFileNew(worker);
+    if (jobs.length === 0 && listFree && freeWorkerCount > 0){
+        listFileNew(worker, freeWorkerCount);
         return;
     } 
+
 
     if (jobs.length === 0){
         freeWorker(worker);
@@ -350,12 +361,12 @@ function listFileInprogress(){
 }
 
 
-function listFileNew(worker){
+function listFileNew(worker, limit){
     if (!listFree){
         return;
     }
     listFree = false; // lock list file function
-    //logger.debug(worker.name, 'listFileNew()');
+    logger.info(worker.name, 'listFileNew()', limit);
     var folder = '"application/vnd.google-apps.folder"';
 
     //var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
@@ -363,7 +374,7 @@ function listFileNew(worker){
 
     var query = '"' + oldOwner +'"' + ' in owners and mimeType != ' + folder + 
         ' and not title contains "GDCOPY_"';
-    drive.files.list({q:query, maxResults: workerCount },queryFile);
+    drive.files.list({q:query, maxResults: limit},queryFile);
 
     function queryFile(err,files){
 
