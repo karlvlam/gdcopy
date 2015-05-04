@@ -81,9 +81,8 @@ var statusList = [
     {status:"LISTED", prefix:"GDCOPY_DSRC#LISTED"},
     {status:"COPIED", prefix:"GDCOPY_DSRCD#COPIED"},
     {status:"SET_PERMISSION", prefix:"GDCOPY_DSRC#SET_PERMISSION"},
-    {status:"ADD_PARENT", prefix:"GDCOPY_DSRC#ADD_PARENT"},
+    {status:"MOVE_FILE", prefix:"GDCOPY_DSRC#MOVE_FILE"},
     {status:"CH_OWNER", prefix:"GDCOPY_DSRC#CH_OWNER"},
-    {status:"RM_PARENT", prefix:"GDCOPY_DSRC#RM_PARENT"},
     {status:"DONE", prefix:"GDCOPY_DONE_DSRC#DONE"},
     {status:"DST", prefix:"GDCOPY_DST"},
 ];
@@ -820,11 +819,13 @@ function setPermission(worker, job){
 function moveFiles(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'moveFiles()', JSON.stringify(job));
-    var copyFunList = [];
+    var moveFunList= [];
+    var childrenList = [];
     var chain = new promise.defer();
     chain
     .then(getChildern)
-    //.then(doCopy)
+    .then(doMove)
+    .then(reQueue)
     //.then(rename)
     chain.resolve();
 
@@ -840,72 +841,100 @@ function moveFiles(worker, job){
         logger.debug(opt)
 
         drive.children.list(opt, function(err, result){
-            logger.error(err);
+            if(err){
+                logger.error(new Error(err));
+                p.reject();
+                return;
+            };
             logger.info(JSON.stringify(result, null, 2));
+            childrenList = result.items;
+            if (childrenList.length === 0){
+                // TODO: free this worker
+                completeMoveFile();
+                return;
+            }
+            p.resolve();
+            return;
 
         });
         return p;
     };
-    function copyPermission(opt){
-        var p = new promise.defer();
-        var idx = opt['idx'];
-        var perm = job['srcPremissions'][idx];
-        if (perm['id'].match(/i$/)){
-            logger.warn('skip Permission ID:', perm['id']);
-            p.resolve({idx: idx + 1});
-            return p;
+    function doMove(){
+        var plist = [];
+        for(var i=0; i < childrenList.length; i++){
+            var p = new promise.defer();
+            plist.push(p);
         }
-        _copyPermission(job['dstFileId'], perm, function(err, result){
+        var pAll = new promise.all(plist);
+        for(var i=0; i < childrenList.length; i++){
+            var p = plist[i];
+            var c = childrenList[i];
+            _moveFile(p, job['srcFileId'], job['dstFileId'], c['id']);
+            plist.push(p);
+        }
+
+        return pAll;
+    };
+
+    function _moveFile(thePromise, srcFolder, dstFolder, fileId){
+        var p =  thePromise;
+        var opt = {
+            folderId: dstFolder,
+            resource:{
+                id: fileId,
+            }
+        }
+        // add file to a the new folder first
+        drive.children.insert(opt, function(err, result){
             if(err){
-
-                if (err === 'OWNER' || 
-                    err === 'NO_EMAIL' ||
-                    err === 'NO_USER' ||
-                    err === 'SHARE_LINK' ||
-                    err === 'SKIP_TYPE' 
-                   ){
-                       logger.warn('skipped:', err);
-                       p.resolve({idx: idx + 1});
-                       return;
-                   }
-
-                if(err.toString().match(/The owner of a file cannot be removed/) || 
-                   err.toString().match(/Permission not found/) || 
-                   err.toString().match(/Permission ID mismatch/) ){
-
-                    logger.warn('skipped:', err.toString());
-                    p.resolve({idx: idx + 1});
-                    return;
-                }
-
-                logger.error(err.toString());
+                logger.error(new Error(err));
+                process.exit(1);
                 return;
+            };
+
+            // then remove from the old folder
+            _delParent();
+        });
+        function _delParent(){
+            var opt = {
+                parentId: srcFolder,
+                fileId: fileId,
             }
 
-            logger.debug(result);
-            p.resolve({idx: idx + 1});
-        });
+            drive.parents.delete(opt, function(err, result){
+                if(err){
+                    logger.error(new Error(err));
+                    process.exit(1);
+                    return;
+                };
+                logger.debug('_moveFile() done! ', fileId);
+                p.resolve();
+            });
+
+        }
         return p;
     }
 
-    function doCopy(){
-        var p = new promise.seq(copyFunList, {idx:0});
-        return p;
-    };
-
-
-    function rename(){
+    function reQueue(){
         var p = new promise.defer();
-        var title = getPrefix('SET_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
+        jobs.push(job);
+        logger.debug('MOVE_FILE requeue:', job['oriTitle']);
+        freeWorker(worker);
+        return p;
+    }
+
+    function completeMoveFile(){
+        var p = new promise.defer();
+        var title = getPrefix('MOVE_FILE') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:', new Error(err)); 
                 worker.free = true;
                 return;
             }
             job['srcTitle'] = file['title']
             job['status'] = getStatus(file['title']);
-            logger.debug('SET_PERMISSION successed!', job);
+            logger.debug('MOVE_FILE successed!', job['oriTitle']);
 
             jobs.push(job);
             logger.warn(jobs);
@@ -1128,8 +1157,7 @@ var handleStatus = {
     'SET_PERMISSION': moveFiles,
     /*
     'MOVE_FILE': changeOwner,
-    'CH_OWNER': removePermission,
-    'RM_PARENT': markDone,
+    'CH_OWNER': markDone,
    */
 
 }
