@@ -40,11 +40,19 @@ Enter the code here:
 
 file oauth.token will be created/overwritten.
 
-## Copy files
+## make copies of files, and change to the new owner. 
 
 ```
 node copyfile.js 
 
-Usgae: /u1/src/gdcopy/copyfile.js [OLD OWNER EMAIL] [NEW OWNER EMAIL] [NUMBER OF WORKERS]
+Usgae: /hdd/main/home/karl/src/gdcopy/copyfile.js [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [NUMBER_OF_WORKERS]
+
+```
+## make copies of folders as new owner, then move the children to the new one.
+
+```
+node movefolder.js 
+
+Usgae: /hdd/main/home/karl/src/gdcopy/movefolder.js [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [MAX_CONCURRENT_REQ]
 
 ```
