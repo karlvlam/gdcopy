@@ -30,7 +30,7 @@ gdcopy is a mini project for copying the folders and files for ownership transfe
 
 1. run oauth.js. Then continue the oauth process and paste the code as the input. 
 
-```
+```bash
 node oauth.js
 
 Visit the url:  https://accounts.google.com/o/oauth2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive&response_type=code&client_id=573581311921-us64va41fglaaulfor1fpd7m6ecg060c.apps.googleusercontent.com&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob
