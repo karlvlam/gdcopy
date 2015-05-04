@@ -72,7 +72,7 @@ for (var i = 0; i< workerCount; i++){
 
 function printUsage(){
 
-    var out = "Usgae: " + process.argv[1] + " [OLD OWNER EMAIL] [NEW OWNER EMAIL] " ;
+    var out = "Usgae: " + process.argv[1] + " [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [MAX_CONCURRENT_REQ]" ;
 
     console.log(out);
 }
