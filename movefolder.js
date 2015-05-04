@@ -1025,9 +1025,10 @@ var handleStatus = {
     'LISTED': createNewFolder,
     'COPIED': setPermission,
     /*
+    'ADD_PARENT': markDone,
     'SET_PERMISSION': changeOwner,
     'CH_OWNER': removePermission,
-    'RM_PERMISSION': markDone,
+    'RM_PARENT': markDone,
    */
 
 }
