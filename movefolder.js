@@ -636,13 +636,13 @@ function markFileListed(worker, job){
     })
 }
 
-function cloneNewFile(worker, job){
+function createNewFolder(worker, job){
     lockWorker(worker);
-    logger.debug(worker.name, 'cloneNewFile()', JSON.stringify(job));
+    logger.debug(worker.name, 'createNewFolder()', JSON.stringify(job));
     var chain = new promise.defer();
     chain
     .then(getParents)
-    .then(copyFile)
+    .then(makeFolder)
     .then(rename);
     chain.resolve();
 
@@ -664,24 +664,24 @@ function cloneNewFile(worker, job){
         return p;
     }
 
-    function copyFile(){
+    function makeFolder(){
         var p = new promise.defer();
         var opt = {
-            fileId: job['srcFileId'],
             resource:{
+                mimeType: 'application/vnd.google-apps.folder',
                 title: getPrefix('DST') + '#' + job['oriTitle'],
                 parents: job['srcParents'],
             }
         }
 
         logger.debug(opt);
-        drive.files.copy(opt, function(err, result){
+        drive.files.insert(opt, function(err, result){
             if (err){
-                logger.error(worker.name, 'copyfile', err);
+                logger.error(worker.name, 'makeFolder', err);
                 freeWorker(worker);
                 return;
             }
-            logger.debug(worker.name, 'copyfile', result);
+            logger.debug(worker.name, 'makeFolder', result);
             job['dstFileId'] = result['id'];
             p.resolve();
 
@@ -1022,8 +1022,8 @@ function markDone(worker, job){
 
 var handleStatus = {
     'NEW': markFileListed,
+    'LISTED': createNewFolder,
     /*
-    'LISTED': cloneNewFile,
     'COPIED': setPermission,
     'SET_PERMISSION': changeOwner,
     'CH_OWNER': removePermission,
