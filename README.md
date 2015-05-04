@@ -28,7 +28,7 @@ gdcopy is a mini project for copying the folders and files for ownership transfe
 
 ### Create OAuth token
 
-1. run oauth.js. Then continue the oauth process and paste the code as the input. 
+run oauth.js. Then continue the oauth process and paste the code as the input. 
 
 ```bash
 node oauth.js
@@ -38,4 +38,13 @@ Enter the code here:
 
 ```
 
-2. file oauth.token will be created/overwritten.
+file oauth.token will be created/overwritten.
+
+## Copy files
+
+```
+node copyfile.js 
+
+Usgae: /u1/src/gdcopy/copyfile.js [OLD OWNER EMAIL] [NEW OWNER EMAIL] [NUMBER OF WORKERS]
+
+```
