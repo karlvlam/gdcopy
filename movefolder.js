@@ -48,15 +48,14 @@ var jobs = []; // jobs with "GDCOPY_"
 // create workers
 var listFree = true;
 var workerCount = 1;
-/*
+var reqCount = 1;
 try{
-    workerCount = parseInt(process.argv[4]);
-    if(isNaN(workerCount)){ workerCount = 1 };
+    reqCount = parseInt(process.argv[4]);
+    if(isNaN(reqCount)){ reqCount = 1 };
 }catch(err){}
-if (workerCount > 100){
-    workerCount = 1;
+if (reqCount > 100){
+    reqCount = 1;
 }
-*/
 var workerWait = 29;
 var listeners = [];
 
@@ -818,6 +817,108 @@ function setPermission(worker, job){
 
 
 };
+function moveFiles(worker, job){
+    lockWorker(worker);
+    logger.debug(worker.name, 'moveFiles()', JSON.stringify(job));
+    var copyFunList = [];
+    var chain = new promise.defer();
+    chain
+    .then(getChildern)
+    //.then(doCopy)
+    //.then(rename)
+    chain.resolve();
+
+    function getChildern(){
+        var p = new promise.defer();
+        var query = ' not title contains "GDCOPY_SRC#" and not title contains "GDCOPY_DONE"';
+
+        var opt = {
+            folderId: job['srcFileId'],
+            maxResults: reqCount,
+            q: query,
+        }
+        logger.debug(opt)
+
+        drive.children.list(opt, function(err, result){
+            logger.error(err);
+            logger.info(JSON.stringify(result, null, 2));
+
+        });
+        return p;
+    };
+    function copyPermission(opt){
+        var p = new promise.defer();
+        var idx = opt['idx'];
+        var perm = job['srcPremissions'][idx];
+        if (perm['id'].match(/i$/)){
+            logger.warn('skip Permission ID:', perm['id']);
+            p.resolve({idx: idx + 1});
+            return p;
+        }
+        _copyPermission(job['dstFileId'], perm, function(err, result){
+            if(err){
+
+                if (err === 'OWNER' || 
+                    err === 'NO_EMAIL' ||
+                    err === 'NO_USER' ||
+                    err === 'SHARE_LINK' ||
+                    err === 'SKIP_TYPE' 
+                   ){
+                       logger.warn('skipped:', err);
+                       p.resolve({idx: idx + 1});
+                       return;
+                   }
+
+                if(err.toString().match(/The owner of a file cannot be removed/) || 
+                   err.toString().match(/Permission not found/) || 
+                   err.toString().match(/Permission ID mismatch/) ){
+
+                    logger.warn('skipped:', err.toString());
+                    p.resolve({idx: idx + 1});
+                    return;
+                }
+
+                logger.error(err.toString());
+                return;
+            }
+
+            logger.debug(result);
+            p.resolve({idx: idx + 1});
+        });
+        return p;
+    }
+
+    function doCopy(){
+        var p = new promise.seq(copyFunList, {idx:0});
+        return p;
+    };
+
+
+    function rename(){
+        var p = new promise.defer();
+        var title = getPrefix('SET_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
+        _renameFile(job['srcFileId'], title, function(err, file){
+            if (err){
+                logger.error('rename error:', err); 
+                worker.free = true;
+                return;
+            }
+            job['srcTitle'] = file['title']
+            job['status'] = getStatus(file['title']);
+            logger.debug('SET_PERMISSION successed!', job);
+
+            jobs.push(job);
+            logger.warn(jobs);
+            freeWorker(worker);
+            return;
+
+        })
+        return p;
+    }
+
+
+};
+
 function changeOwner(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'changeOwner()', JSON.stringify(job));
@@ -826,11 +927,11 @@ function changeOwner(worker, job){
 
     var chain = new promise.defer();
     chain
-    .then(changeOwner)
+    .then(_changeOwner)
     .then(rename)
     chain.resolve();
 
-    function changeOwner(){
+    function _changeOwner(){
 
         var p = new promise.defer();
         _changeOwner(job['dstFileId'], newOwnerPermId, function(err, result){
@@ -1024,9 +1125,9 @@ var handleStatus = {
     'NEW': markFileListed,
     'LISTED': createNewFolder,
     'COPIED': setPermission,
+    'SET_PERMISSION': moveFiles,
     /*
-    'ADD_PARENT': markDone,
-    'SET_PERMISSION': changeOwner,
+    'MOVE_FILE': changeOwner,
     'CH_OWNER': removePermission,
     'RM_PARENT': markDone,
    */
