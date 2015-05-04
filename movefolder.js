@@ -956,11 +956,11 @@ function changeOwner(worker, job){
 
     var chain = new promise.defer();
     chain
-    .then(_changeOwner)
+    .then(changeOwner)
     .then(rename)
     chain.resolve();
 
-    function _changeOwner(){
+    function changeOwner(){
 
         var p = new promise.defer();
         _changeOwner(job['dstFileId'], newOwnerPermId, function(err, result){
@@ -1000,103 +1000,6 @@ function changeOwner(worker, job){
 
 }
 
-function removePermission(worker, job){
-    lockWorker(worker);
-    logger.debug(worker.name, 'removePermission()', JSON.stringify(job));
-    var removeFunList = [];
-    var chain = new promise.defer();
-    chain
-    .then(getPermission)
-    .then(doRemove)
-    .then(rename)
-    chain.resolve();
-
-    function getPermission(){
-        var p = new promise.defer();
-        _listPermission(job['srcFileId'], function(err, result){
-            if (err){
-                logger.error('listPermission error:', err); 
-                worker.free = true;
-                return;
-            }
-            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
-            job['srcPremissions'] = result.items;
-
-            for(var i=0; i < job['srcPremissions'].length; i++){
-                removeFunList.push(rmPermission);
-
-            }
-          
-            p.resolve();
-            return;
-
-        });
-        return p;
-    };
-    function rmPermission(opt){
-        var p = new promise.defer();
-        var idx = opt['idx'];
-        var perm = job['srcPremissions'][idx];
-        _deletePermission(job['srcFileId'], perm, function(err, result){
-            if(err){
-                if (err === 'OWNER' || 
-                    err === 'NO_EMAIL' ||
-                    err === 'NO_USER' ||
-                    err === 'RUNNER_ID' 
-                   ){
-                       logger.warn('skipped:', err);
-                       p.resolve({idx: idx + 1});
-                       return;
-                   }
-
-                if(err.toString().match(/The owner of a file cannot be removed/) || 
-                   err.toString().match(/Permission not found/) || 
-                   err.toString().match(/Permission ID mismatch/) ){
-
-                    logger.warn('skipped:', err.toString());
-                    p.resolve({idx: idx + 1});
-                    return;
-                }
-                logger.error(err);
-                return;
-            }
-
-            logger.debug('Permission removed:', perm);
-            p.resolve({idx: idx + 1});
-        });
-        return p;
-    }
-
-    function doRemove(){
-        var p = new promise.seq(removeFunList, {idx:0});
-        return p;
-    };
-
-
-    function rename(){
-        var p = new promise.defer();
-        var title = getPrefix('RM_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
-        _renameFile(job['srcFileId'], title, function(err, file){
-            if (err){
-                logger.error('rename error:', err); 
-                worker.free = true;
-                return;
-            }
-            job['srcTitle'] = file['title']
-            job['status'] = getStatus(file['title']);
-            logger.debug('RM_PERMISSION successed!', job);
-
-            jobs.push(job);
-            logger.warn(jobs);
-            freeWorker(worker);
-            return;
-
-        })
-        return p;
-    }
-
-
-};
 
 function markDone(worker, job){
     lockWorker(worker);
@@ -1155,9 +1058,6 @@ var handleStatus = {
     'LISTED': createNewFolder,
     'COPIED': setPermission,
     'SET_PERMISSION': moveFiles,
-    /*
     'MOVE_FILE': changeOwner,
     'CH_OWNER': markDone,
-   */
-
 }
