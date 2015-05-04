@@ -1023,8 +1023,8 @@ function markDone(worker, job){
 var handleStatus = {
     'NEW': markFileListed,
     'LISTED': createNewFolder,
-    /*
     'COPIED': setPermission,
+    /*
     'SET_PERMISSION': changeOwner,
     'CH_OWNER': removePermission,
     'RM_PERMISSION': markDone,
