@@ -71,7 +71,7 @@ for (var i = 0; i< workerCount; i++){
 
 function printUsage(){
 
-    var out = "Usgae: " + process.argv[1] + " [OLD OWNER EMAIL] [NEW OWNER EMAIL] [NUMBER OF WORKERS]" ;
+    var out = "Usgae: " + process.argv[1] + " [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [NUMBER_OF_WORKERS]" ;
 
     console.log(out);
 }
