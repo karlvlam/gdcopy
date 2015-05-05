@@ -428,10 +428,12 @@ function _permToString(p){
 
     try{
         if (p['kind'] !== 'drive#permission'){
+            //logger.error('1')
             return null;
         }
 
-        if ( (p['role'] !== 'user' && p['role'] !== 'group') ){
+        if ( p['type'] !== 'user' && p['type'] !== 'group' ){
+            //logger.error('2')
             return null;
         }
 
@@ -440,6 +442,7 @@ function _permToString(p){
             s += JSON.stringify(p['additionalRoles']);
         }
     }catch(err){
+        logger.error(new Error(err));
         return null;
     }
 
@@ -789,24 +792,32 @@ function setPermission(worker, job){
     function filterPerm(){
         var p = new promise.defer();
         for (var i=0; i < srcPerm.length; i++){
+            var dup = false;
             var sp = srcPerm[i];
             for (var j=0; j < dstPerm.length; j++){
                 var dp = dstPerm[j];
-                if ((sp['id'] === dp['id']) && (_permToString(sp) !== _permToString(dp))){
-                    copyPerm.push(sp);
-                    copyFunList.push(copyPermission);
+                //console.log(_permToString(sp), _permToString(dp));
+                if (_permToString(sp) === _permToString(dp)){
+                    dup = true;
                     break;
                 }
             }
+            if (dup){
+                continue;
+            }
+            copyPerm.push(sp);
+            copyFunList.push(copyPermission);
+
         }
         logger.debug('COPY_PERM:', copyPerm);
+        p.resolve();
         return p;
     }
 
     function copyPermission(opt){
         var p = new promise.defer();
         var idx = opt['idx'];
-        var perm = job['srcPremissions'][idx];
+        var perm = copyPerm[idx];
         if (perm['id'].match(/i$/)){
             logger.warn('skip Permission ID:', perm['id']);
             p.resolve({idx: idx + 1});
