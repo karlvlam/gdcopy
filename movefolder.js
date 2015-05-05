@@ -759,7 +759,7 @@ function setPermission(worker, job){
                 return;
             }
             logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
-            jsrcPrem = result.items;
+            srcPerm = result.items;
 
             p.resolve();
             return;
