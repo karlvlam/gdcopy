@@ -417,6 +417,32 @@ function listFileNew(worker, limit){
 
 }
 
+function _permToString(p){
+
+    try{
+        if (p['kind'] !== 'drive#permission'){
+            //logger.error('1')
+            return null;
+        }
+
+        if ( p['type'] !== 'user' && p['type'] !== 'group' ){
+            //logger.error('2')
+            return null;
+        }
+
+        var s = p['id'] + '#' + p['emailAddress'] + '#' + p['type'] + '#' + p['role'];
+        if (p['additionalRoles']){
+            s += JSON.stringify(p['additionalRoles']);
+        }
+    }catch(err){
+        logger.error(new Error(err));
+        return null;
+    }
+
+    return s;
+
+};
+
 function _renameFile(fileId, title, cb){
     var opt = {
         fileId: fileId,
@@ -708,14 +734,19 @@ function setPermission(worker, job){
     lockWorker(worker);
     logger.debug(worker.name, 'setPermission()', JSON.stringify(job));
     var copyFunList = [];
+    var copyPerm = [];
+    var srcPerm = null;
+    var dstPerm = null;
     var chain = new promise.defer();
     chain
-    .then(getPermission)
+    .then(getSrcPermission)
+    .then(getDstPermission)
+    .then(filterPerm)
     .then(doCopy)
     .then(rename)
     chain.resolve();
 
-    function getPermission(){
+    function getSrcPermission(){
         var p = new promise.defer();
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
@@ -724,12 +755,25 @@ function setPermission(worker, job){
                 return;
             }
             logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
-            job['srcPremissions'] = result.items;
+            srcPerm = result.items;
 
-            for(var i=0; i < job['srcPremissions'].length; i++){
-                copyFunList.push(copyPermission);
+            p.resolve();
+            return;
 
+        });
+        return p;
+    };
+    function getDstPermission(){
+        var p = new promise.defer();
+        _listPermission(job['dstFileId'], function(err, result){
+            if (err){
+                logger.error('listPermission error:', err); 
+                worker.free = true;
+                return;
             }
+            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+            dstPerm = result.items;
+
           
             p.resolve();
             return;
@@ -737,10 +781,36 @@ function setPermission(worker, job){
         });
         return p;
     };
+
+    function filterPerm(){
+        var p = new promise.defer();
+        for (var i=0; i < srcPerm.length; i++){
+            var dup = false;
+            var sp = srcPerm[i];
+            for (var j=0; j < dstPerm.length; j++){
+                var dp = dstPerm[j];
+                //console.log(_permToString(sp), _permToString(dp));
+                if (_permToString(sp) === _permToString(dp)){
+                    dup = true;
+                    break;
+                }
+            }
+            if (dup){
+                continue;
+            }
+            copyPerm.push(sp);
+            copyFunList.push(copyPermission);
+
+        }
+        logger.debug('COPY_PERM:', copyPerm);
+        p.resolve();
+        return p;
+    }
+
     function copyPermission(opt){
         var p = new promise.defer();
         var idx = opt['idx'];
-        var perm = job['srcPremissions'][idx];
+        var perm = copyPerm[idx];
         if (perm['id'].match(/i$/)){
             logger.warn('skip Permission ID:', perm['id']);
             p.resolve({idx: idx + 1});
