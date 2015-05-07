@@ -958,6 +958,7 @@ function moveFiles(worker, job){
         drive.children.insert(opt, function(err, result){
             if(err){
                 logger.error(new Error(err));
+                logger.debug(fileId);
                 process.exit(1);
                 return;
             };
