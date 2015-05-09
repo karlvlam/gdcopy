@@ -140,6 +140,11 @@ chain.resolve();
 function handleError(err, worker){
     var errStr = err.toString();
 
+    var r = {
+        error: null,
+        retry: false,
+    }
+
     function backoff(){
         worker['time'] = new Date().getTime() + 
             Math.round(Math.random() * 2000);
@@ -148,20 +153,22 @@ function handleError(err, worker){
     if (errStr.match(/Insufficient permissions for this file/)){
         logger.debug('[PERM_ERROR]', job['srcFileId'], job['oriTitle']);
         blacklist[job['srcFileId']] = true;
-        return 'PERM_ERROR';
+        r.error = 'PERM_ERROR';
     }
     if (errStr.match(/User rate limit exceeded/)){
         backoff();
-        return 'RATELIMIT_ERROR';
+        r.error = 'RATELIMIT_ERROR';
+        r.retry = true;
     }
 
     if (errStr.match(/Internal Error/)){
         backoff();
-        return 'INTERNAL_ERROR';
+        r.error = 'INTERNAL_ERROR';
+        r.retry = true;
     }
 
 
-    return null;
+    return r;
 
 }
 
@@ -682,8 +689,11 @@ function markFileListed(worker, job){
 
     _renameFile(job['srcFileId'], getPrefix('LISTED') + '#' + job['srcFileId']+ '#NULL#' + job['oriTitle'], function(err, file){
         if (err){
-            logger.error('markListed error:', err); 
-            worker.free = true;
+            logger.error('markListed error:', new Error(err)); 
+            if (handleError(err, worker)['retry']){
+                jobs.push(job);
+            }
+            freeWorker(worker);
             return;
         }
         job['srcTitle'] = file['title']
@@ -715,6 +725,10 @@ function cloneNewFile(worker, job){
         drive.parents.list({fileId:job['srcFileId']}, function(err, result){
             if (err){
                 logger.error(worker.name, err);
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
+
                 freeWorker(worker);
                 return;
             }
@@ -740,6 +754,10 @@ function cloneNewFile(worker, job){
         drive.files.copy(opt, function(err, result){
             if (err){
                 logger.error(worker.name, 'copyfile', err);
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
+
                 freeWorker(worker);
                 return;
             }
@@ -757,7 +775,11 @@ function cloneNewFile(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
-                worker.free = true;
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
+
+                freeWorker(worker);
                 return;
             }
             job['srcTitle'] = file['title']
@@ -796,7 +818,11 @@ function setPermission(worker, job){
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
                 logger.error('listPermission error:', err); 
-                worker.free = true;
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
+
+                freeWorker(worker);
                 return;
             }
             logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
@@ -813,6 +839,10 @@ function setPermission(worker, job){
         _listPermission(job['dstFileId'], function(err, result){
             if (err){
                 logger.error('listPermission error:', err); 
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
+
                 worker.free = true;
                 return;
             }
@@ -864,6 +894,12 @@ function setPermission(worker, job){
         _copyPermission(job['dstFileId'], perm, function(err, result){
             if(err){
 
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                    freeWorker(worker);
+                    return;
+                }
+
                 if (err === 'OWNER' || 
                     err === 'NO_EMAIL' ||
                     err === 'NO_USER' ||
@@ -906,6 +942,10 @@ function setPermission(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
+
                 worker.free = true;
                 return;
             }
@@ -942,7 +982,10 @@ function changeOwner(worker, job){
         _changeOwner(job['dstFileId'], newOwnerPermId, function(err, result){
             if (err){
                 logger.error(err);
-                process.exit(1);
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
+                freeWorker(worker);
                 return;
             }
 
@@ -958,6 +1001,10 @@ function changeOwner(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
+
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
                 worker.free = true;
                 return;
             }
@@ -992,6 +1039,9 @@ function removePermission(worker, job){
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
                 logger.error('listPermission error:', err); 
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
                 worker.free = true;
                 return;
             }
@@ -1015,6 +1065,11 @@ function removePermission(worker, job){
         var perm = job['srcPremissions'][idx];
         _deletePermission(job['srcFileId'], perm, function(err, result){
             if(err){
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                    freeWorker(worker);
+                    return;
+                }
                 if (err === 'OWNER' || 
                     err === 'NO_EMAIL' ||
                     err === 'NO_USER' ||
@@ -1055,6 +1110,9 @@ function removePermission(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
                 worker.free = true;
                 return;
             }
@@ -1089,6 +1147,9 @@ function markDone(worker, job){
         _renameFile(job['dstFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
                 worker.free = true;
                 return;
             }
@@ -1106,6 +1167,9 @@ function markDone(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
+                if (handleError(err, worker)['retry']){
+                    jobs.push(job);
+                }
                 worker.free = true;
                 return;
             }
