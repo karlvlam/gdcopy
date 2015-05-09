@@ -137,7 +137,7 @@ chain
 .then(runWorker);
 chain.resolve();
 
-function handleError(err, worker){
+function handleError(err, worker, job){
     var errStr = err.toString();
     logger.debug('HANDLE_ERROR', errStr);
 
@@ -691,7 +691,7 @@ function markFileListed(worker, job){
     _renameFile(job['srcFileId'], getPrefix('LISTED') + '#' + job['srcFileId']+ '#NULL#' + job['oriTitle'], function(err, file){
         if (err){
             logger.error('markListed error:', new Error(err)); 
-            if (handleError(err, worker)['retry']){
+            if (handleError(err, worker, job)['retry']){
                 jobs.push(job);
             }
             freeWorker(worker);
@@ -726,7 +726,7 @@ function cloneNewFile(worker, job){
         drive.parents.list({fileId:job['srcFileId']}, function(err, result){
             if (err){
                 logger.error(worker.name, err);
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
 
@@ -755,7 +755,7 @@ function cloneNewFile(worker, job){
         drive.files.copy(opt, function(err, result){
             if (err){
                 logger.error(worker.name, 'copyfile', err);
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
 
@@ -776,7 +776,7 @@ function cloneNewFile(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
 
@@ -819,7 +819,7 @@ function setPermission(worker, job){
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
                 logger.error('listPermission error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
 
@@ -840,7 +840,7 @@ function setPermission(worker, job){
         _listPermission(job['dstFileId'], function(err, result){
             if (err){
                 logger.error('listPermission error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
 
@@ -895,7 +895,7 @@ function setPermission(worker, job){
         _copyPermission(job['dstFileId'], perm, function(err, result){
             if(err){
 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                     freeWorker(worker);
                     return;
@@ -943,7 +943,7 @@ function setPermission(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
 
@@ -983,7 +983,7 @@ function changeOwner(worker, job){
         _changeOwner(job['dstFileId'], newOwnerPermId, function(err, result){
             if (err){
                 logger.error(err);
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
                 freeWorker(worker);
@@ -1003,7 +1003,7 @@ function changeOwner(worker, job){
             if (err){
                 logger.error('rename error:', err); 
 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
                 worker.free = true;
@@ -1040,7 +1040,7 @@ function removePermission(worker, job){
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
                 logger.error('listPermission error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
                 worker.free = true;
@@ -1066,7 +1066,7 @@ function removePermission(worker, job){
         var perm = job['srcPremissions'][idx];
         _deletePermission(job['srcFileId'], perm, function(err, result){
             if(err){
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                     freeWorker(worker);
                     return;
@@ -1111,7 +1111,7 @@ function removePermission(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
                 worker.free = true;
@@ -1148,7 +1148,7 @@ function markDone(worker, job){
         _renameFile(job['dstFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
                 worker.free = true;
@@ -1168,7 +1168,7 @@ function markDone(worker, job){
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
                 logger.error('rename error:', err); 
-                if (handleError(err, worker)['retry']){
+                if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
                 worker.free = true;
