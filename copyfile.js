@@ -45,6 +45,8 @@ if (oldOwner === newOwner){
 //var listed = []; // jobs with no "GDCOPY_"
 var jobs = []; // jobs with "GDCOPY_"
 
+var blacklist = {};
+
 // create workers
 var listFree = true;
 var workerCount = 1;
@@ -63,6 +65,7 @@ for (var i = 0; i< workerCount; i++){
     var jobListener = new eventEmitter();
     jobListener['name'] = 'worker_' + i;
     jobListener['free'] = true;
+    jobListener['time'] = 0;
 
     jobListener.on('handleJob',handleJob);
     listeners.push(jobListener);
@@ -134,6 +137,34 @@ chain
 .then(runWorker);
 chain.resolve();
 
+function handleError(err, worker){
+    var errStr = err.toString();
+
+    function backoff(){
+        worker['time'] = new Date().getTime() + 
+            Math.round(Math.random() * 2000);
+    }
+
+    if (errStr.match(/Insufficient permissions for this file/)){
+        logger.debug('[PERM_ERROR]', job['srcFileId'], job['oriTitle']);
+        blacklist[job['srcFileId']] = true;
+        return 'PERM_ERROR';
+    }
+    if (errStr.match(/User rate limit exceeded/)){
+        backoff();
+        return 'RATELIMIT_ERROR';
+    }
+
+    if (errStr.match(/Internal Error/)){
+        backoff();
+        return 'INTERNAL_ERROR';
+    }
+
+
+    return null;
+
+}
+
 function checkToken(){
     var p = new promise.defer();
 
@@ -188,6 +219,11 @@ function runWorker(){
 
             var worker = listeners[i];
 
+            // skip workers not in time
+            if (worker.time <= new Date().getTime()){
+                continue;
+            }
+
             worker.emit('handleJob');
             //logger.warn(worker.name, 'emit handleJob');
 
@@ -203,6 +239,7 @@ function handleJob(){
     if (!lockWorker(worker)){
         return;
     }
+
 
     var freeWorkerCount = 1; // this "free" worker counts one
     for (var i = 0; i< workerCount; i++){
@@ -223,7 +260,15 @@ function handleJob(){
         freeWorker(worker);
         return;
     }
+
     var job = jobs.pop();
+
+    // skip srcFileId in blacklist
+    if (blacklist[job['srcFileId']]){
+        freeWorker(worker);
+        return;
+    }
+
     var fun = handleStatus[job['status']];
     logger.warn(worker.name, job['status']);
     if (fun){
