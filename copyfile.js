@@ -227,7 +227,7 @@ function runWorker(){
             var worker = listeners[i];
 
             // skip workers not in time
-            if (worker.time <= new Date().getTime()){
+            if (worker.time >= new Date().getTime()){
                 continue;
             }
 
