@@ -156,7 +156,7 @@ function handleError(err, worker, job){
         blacklist[job['srcFileId']] = true;
         r.error = 'PERM_ERROR';
     }
-    if (errStr.match(/User rate limit exceeded/)){
+    if (errStr.match(/limit exceeded/)){
         backoff();
         r.error = 'RATELIMIT_ERROR';
         r.retry = true;
