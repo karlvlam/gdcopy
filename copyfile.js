@@ -139,6 +139,7 @@ chain.resolve();
 
 function handleError(err, worker){
     var errStr = err.toString();
+    logger.debug('HANDLE_ERROR', errStr);
 
     var r = {
         error: null,
