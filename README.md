@@ -33,7 +33,7 @@ run oauth.js. Then continue the oauth process and paste the code as the input.
 ```bash
 node oauth.js
 
-Visit the url:  https://accounts.google.com/o/oauth2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive&response_type=code&client_id=573581311921-us64va41fglaaulfor1fpd7m6ecg060c.apps.googleusercontent.com&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob
+Visit the url:  https://accounts.google.com/o/oauth2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive&response_type=code&client_id=57358dfasdfasfasdfsdaaulfor1fpd7m6ecg060c.apps.googleusercontent.com&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob
 Enter the code here:
 
 ```
@@ -45,7 +45,7 @@ file oauth.token will be created/overwritten.
 ```
 node copyfile.js 
 
-Usgae: /hdd/main/home/karl/src/gdcopy/copyfile.js [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [NUMBER_OF_WORKERS]
+Usgae: copyfile.js [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [NUMBER_OF_WORKERS]
 
 ```
 ## make copies of folders as new owner, then move the children to the new one.
@@ -53,6 +53,6 @@ Usgae: /hdd/main/home/karl/src/gdcopy/copyfile.js [OLD_OWNER_EMAIL] [NEW_OWNER_E
 ```
 node movefolder.js 
 
-Usgae: /hdd/main/home/karl/src/gdcopy/movefolder.js [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [MAX_CONCURRENT_REQ]
+Usgae: movefolder.js [OLD_OWNER_EMAIL] [NEW_OWNER_EMAIL] [MAX_CONCURRENT_REQ]
 
 ```
