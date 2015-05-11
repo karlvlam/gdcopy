@@ -940,7 +940,6 @@ function moveFiles(worker, job){
             var p = plist[i];
             var c = childrenList[i];
             _moveFile(p, job['srcFileId'], job['dstFileId'], c['id']);
-            plist.push(p);
         }
 
         return pAll;
