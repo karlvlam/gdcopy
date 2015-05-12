@@ -79,7 +79,7 @@ function printUsage(){
 
 var statusList = [
     {status:"LISTED", prefix:"GDCOPY_DSRC#LISTED"},
-    {status:"COPIED", prefix:"GDCOPY_DSRCD#COPIED"},
+    {status:"COPIED", prefix:"GDCOPY_DSRC#COPIED"},
     {status:"SET_PERMISSION", prefix:"GDCOPY_DSRC#SET_PERMISSION"},
     {status:"MOVE_FILE", prefix:"GDCOPY_DSRC#MOVE_FILE"},
     {status:"CH_OWNER", prefix:"GDCOPY_DSRC#CH_OWNER"},
@@ -321,7 +321,7 @@ function listFileInprogress(){
     }
     // search for WIP files
     var query = '"' + oldOwner +'"' + ' in owners and mimeType = ' + folder + 
-        ' and title contains "GDCOPY_DSRC#" and not title contains "GDCOPY_DONE_DSRC#"';
+        ' and title contains "GDCOPY_DSRC" and not title contains "GDCOPY_DONE_DSRC#"';
     drive.files.list({q:query, maxResults: 10},queryFile);
 
     function queryFile(err,files){
