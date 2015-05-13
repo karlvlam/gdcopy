@@ -932,21 +932,19 @@ function moveFiles(worker, job){
     function doMove(){
         var plist = [];
         for(var i=0; i < childrenList.length; i++){
-            var p = new promise.defer();
-            plist.push(p);
+            moveFunList.push(_moveFile);
         }
-        var pAll = new promise.all(plist);
-        for(var i=0; i < childrenList.length; i++){
-            var p = plist[i];
-            var c = childrenList[i];
-            _moveFile(p, job['srcFileId'], job['dstFileId'], c['id']);
-        }
+        var pSeq = new promise.seq(moveFunList, {idx: 0});
 
-        return pAll;
+        return pSeq;
     };
 
-    function _moveFile(thePromise, srcFolder, dstFolder, fileId){
-        var p =  thePromise;
+    function _moveFile(opt){
+        var i = opt['idx'];
+        var srcFolder = job['srcFileId'];
+        var dstFolder = job['dstFileId'];
+        var fileId = childrenList[i]['id'];
+        var p = new promise.defer();
         var opt = {
             folderId: dstFolder,
             resource:{
@@ -978,7 +976,7 @@ function moveFiles(worker, job){
                     return;
                 };
                 logger.debug('_moveFile() done! ', fileId);
-                p.resolve();
+                p.resolve({idx: i+1});
             });
 
         }
