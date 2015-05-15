@@ -1199,7 +1199,7 @@ var handleStatus = {
     'LISTED': cloneNewFile,
     'COPIED': setPermission,
     'SET_PERMISSION': changeOwner,
-    'CH_OWNER': removePermission,
+    'CH_OWNER': markDone,
     'RM_PERMISSION': markDone,
 
 }
