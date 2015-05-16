@@ -120,22 +120,31 @@ function getFiles(){
 
         //logger.debug(files);
         var fileList = files.items;
+        var funList = [];
         console.log(fileList.length)
         for (var i = 0; i < fileList.length; i++){
             var f = fileList[i];
-            removeFile(f);
+            funList.push(removeFile);
 
         }
 
-        function removeFile(f){
+        var seq = promise.seq(funList, {idx:0})
+
+        function removeFile(opt){
+            var p = promise.defer();
+            var idx = opt['idx'];
+            var f = fileList[idx];
             drive.files.delete({fileId: f['id']}, function(err, result){
                 if (err){
                     logger.error('Delete Error: ', err);
+                    p.resolve({idx: idx + 1});
                     return;
                 }
 
                 logger.info('Delete OK: ', f['title']);
+                p.resolve({idx: idx + 1});
             })
+            return p;
 
         }
 
