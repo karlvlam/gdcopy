@@ -946,40 +946,22 @@ function moveFiles(worker, job){
         var fileId = childrenList[i]['id'];
         var p = new promise.defer();
         var opt = {
-            folderId: dstFolder,
+            fileId: fileId,
             resource:{
-                id: fileId,
+                addParents: dstFolder,
+                removeParents: srcFolder,
             }
         }
-        // add file to a the new folder first
-        drive.children.insert(opt, function(err, result){
+        drive.files.patch(opt, function(err, result){
             if(err){
                 logger.error(new Error(err));
-                logger.debug(fileId);
                 process.exit(1);
                 return;
             };
+            logger.debug('_moveFile() done! ', fileId);
+            p.resolve({idx: i+1});
 
-            // then remove from the old folder
-            _delParent();
         });
-        function _delParent(){
-            var opt = {
-                parentId: srcFolder,
-                fileId: fileId,
-            }
-
-            drive.parents.delete(opt, function(err, result){
-                if(err){
-                    logger.error(new Error(err));
-                    process.exit(1);
-                    return;
-                };
-                logger.debug('_moveFile() done! ', fileId);
-                p.resolve({idx: i+1});
-            });
-
-        }
         return p;
     }
 
