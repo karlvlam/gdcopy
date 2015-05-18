@@ -794,6 +794,9 @@ function setPermission(worker, job){
         for (var i=0; i < srcPerm.length; i++){
             var dup = false;
             var sp = srcPerm[i];
+            if (sp['emailAddress'] === runnerEmail){
+                continue;
+            }
             for (var j=0; j < dstPerm.length; j++){
                 var dp = dstPerm[j];
                 //console.log(_permToString(sp), _permToString(dp));
