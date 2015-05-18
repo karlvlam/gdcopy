@@ -950,10 +950,8 @@ function moveFiles(worker, job){
         var p = new promise.defer();
         var opt = {
             fileId: fileId,
-            resource:{
-                addParents: dstFolder,
-                removeParents: srcFolder,
-            }
+            addParents: dstFolder,
+            removeParents: srcFolder,
         }
         drive.files.patch(opt, function(err, result){
             if(err){
