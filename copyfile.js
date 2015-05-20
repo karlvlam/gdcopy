@@ -764,7 +764,8 @@ function cloneNewFile(worker, job){
             }
             logger.debug(worker.name, 'copyfile', result);
             job['dstFileId'] = result['id'];
-            p.resolve();
+            // wait some time for server update
+            setTimeout(function(p){ p.resolve()}, 2000, p);
 
         })
         return p;
