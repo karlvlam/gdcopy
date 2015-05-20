@@ -755,6 +755,7 @@ function cloneNewFile(worker, job){
         drive.files.copy(opt, function(err, result){
             if (err){
                 logger.error(worker.name, 'copyfile', new Error(err));
+                logger.debug(worker.name, 'copyfile', job['srcTitle']);
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
