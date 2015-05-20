@@ -418,7 +418,7 @@ function listFileNew(worker, limit){
         setTimeout(function(worker){
             listFree = true;
             freeWorker(worker);
-        }, 10000, worker);
+        }, 2000, worker);
 
     }
 
