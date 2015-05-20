@@ -725,7 +725,7 @@ function cloneNewFile(worker, job){
 
         drive.parents.list({fileId:job['srcFileId']}, function(err, result){
             if (err){
-                logger.error(worker.name, err);
+                logger.error(worker.name, new Error(err));
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -754,7 +754,7 @@ function cloneNewFile(worker, job){
         logger.debug(opt);
         drive.files.copy(opt, function(err, result){
             if (err){
-                logger.error(worker.name, 'copyfile', err);
+                logger.error(worker.name, 'copyfile', new Error(err));
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
