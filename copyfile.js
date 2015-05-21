@@ -835,7 +835,7 @@ function setPermission(worker, job){
                 freeWorker(worker);
                 return;
             }
-            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+            logger.debug(worker.name, 'listSrcPermission OK');
             srcPerm = result.items;
 
             p.resolve();
@@ -856,7 +856,7 @@ function setPermission(worker, job){
                 worker.free = true;
                 return;
             }
-            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+            logger.debug(worker.name, 'listDstPermission OK');
             dstPerm = result.items;
 
           
@@ -890,7 +890,7 @@ function setPermission(worker, job){
             copyFunList.push(copyPermission);
 
         }
-        logger.debug('COPY_PERM:', copyPerm);
+        logger.debug(worker.name, 'COPY_PERM:', copyPerm);
         p.resolve();
         return p;
     }
@@ -937,7 +937,7 @@ function setPermission(worker, job){
                 return;
             }
 
-            logger.debug(result);
+            logger.debug(worker.name, 'PERM_COPIED:', result['emailAddress']);
             p.resolve({idx: idx + 1});
         });
         return p;
