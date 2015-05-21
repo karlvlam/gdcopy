@@ -238,7 +238,7 @@ function getRunner(){
     var p = new promise.defer();
     drive.about.get(function(err, result){
         if (err){
-            logger.error('getRunner:', err);
+            logger.error('getRunner:',new Error(err));
             process.exit(1);
             return;
         }
@@ -258,7 +258,7 @@ function getOwnerPermId(){
     var p = new promise.defer();
     _getPermissionId(newOwner, function(err, result){
         if (err){
-            logger.error('newOwnerPermId:', err);
+            logger.error('newOwnerPermId:',new Error(err));
             process.exit(1);
             return;
         }
@@ -644,7 +644,7 @@ function markFileListed(worker, job){
 
     _renameFile(job['srcFileId'], getPrefix('LISTED') + '#' + job['srcFileId']+ '#NULL#' + job['oriTitle'], function(err, file){
         if (err){
-            logger.error('markListed error:', err); 
+            logger.error('markListed error:',new Error(err)); 
             worker.free = true;
             return;
         }
@@ -676,7 +676,7 @@ function createNewFolder(worker, job){
 
         drive.parents.list({fileId:job['srcFileId']}, function(err, result){
             if (err){
-                logger.error(worker.name, err);
+                logger.error(worker.name,new Error(err));
                 freeWorker(worker);
                 return;
             }
@@ -701,7 +701,7 @@ function createNewFolder(worker, job){
         logger.debug(opt);
         drive.files.insert(opt, function(err, result){
             if (err){
-                logger.error(worker.name, 'makeFolder', err);
+                logger.error(worker.name, 'makeFolder',new Error(err));
                 freeWorker(worker);
                 return;
             }
@@ -720,7 +720,7 @@ function createNewFolder(worker, job){
         var title = getPrefix('COPIED') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 worker.free = true;
                 return;
             }
@@ -759,11 +759,11 @@ function setPermission(worker, job){
         var p = new promise.defer();
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
-                logger.error('listPermission error:', err); 
+                logger.error('listSrcPermission error:',new Error(err)); 
                 worker.free = true;
                 return;
             }
-            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+            logger.debug('listSrcPermission OK', JSON.stringify(result.items, null, 2));
             srcPerm = result.items;
 
             p.resolve();
@@ -776,11 +776,11 @@ function setPermission(worker, job){
         var p = new promise.defer();
         _listPermission(job['dstFileId'], function(err, result){
             if (err){
-                logger.error('listPermission error:', err); 
+                logger.error('listDstPermission error:',new Error(err)); 
                 worker.free = true;
                 return;
             }
-            logger.debug('listPermission OK', JSON.stringify(result.items, null, 2));
+            logger.debug('listDstPermission OK', JSON.stringify(result.items, null, 2));
             dstPerm = result.items;
 
           
@@ -814,7 +814,7 @@ function setPermission(worker, job){
             copyFunList.push(copyPermission);
 
         }
-        logger.debug('COPY_PERM:', copyPerm);
+        logger.debug(worker.name, 'COPY_PERM:', copyPerm);
         p.resolve();
         return p;
     }
@@ -837,7 +837,7 @@ function setPermission(worker, job){
                     err === 'SHARE_LINK' ||
                     err === 'SKIP_TYPE' 
                    ){
-                       logger.warn('skipped:', err);
+                       logger.warn('skipped:',new Error(err));
                        p.resolve({idx: idx + 1});
                        return;
                    }
@@ -855,7 +855,7 @@ function setPermission(worker, job){
                 return;
             }
 
-            logger.debug(result);
+            logger.debug(worker.name, 'PERM_COPIED:', result['emailAddress']);
             p.resolve({idx: idx + 1});
         });
         return p;
@@ -872,13 +872,13 @@ function setPermission(worker, job){
         var title = getPrefix('SET_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 worker.free = true;
                 return;
             }
             job['srcTitle'] = file['title']
             job['status'] = getStatus(file['title']);
-            logger.debug('SET_PERMISSION successed!', job);
+            logger.debug(worker.name, 'SET_PERMISSION successed!', job);
 
             jobs.push(job);
             logger.warn(jobs);
@@ -1034,7 +1034,7 @@ function changeOwner(worker, job){
         var title = getPrefix('CH_OWNER') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 worker.free = true;
                 return;
             }
@@ -1068,7 +1068,7 @@ function markDone(worker, job){
         var title = job['oriTitle'];
         _renameFile(job['dstFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 worker.free = true;
                 return;
             }
@@ -1085,7 +1085,7 @@ function markDone(worker, job){
         var title = getPrefix('DONE') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 worker.free = true;
                 return;
             }

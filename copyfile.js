@@ -297,7 +297,7 @@ function getRunner(){
     var p = new promise.defer();
     drive.about.get(function(err, result){
         if (err){
-            logger.error('getRunner:', err);
+            logger.error('getRunner:',new Error(err));
             process.exit(1);
             return;
         }
@@ -317,7 +317,7 @@ function getOwnerPermId(){
     var p = new promise.defer();
     _getPermissionId(newOwner, function(err, result){
         if (err){
-            logger.error('newOwnerPermId:', err);
+            logger.error('newOwnerPermId:',new Error(err));
             process.exit(1);
             return;
         }
@@ -784,7 +784,7 @@ function cloneNewFile(worker, job){
         var title = getPrefix('COPIED') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -827,7 +827,7 @@ function setPermission(worker, job){
         var p = new promise.defer();
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
-                logger.error('listPermission error:', err); 
+                logger.error('listPermission error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -848,7 +848,7 @@ function setPermission(worker, job){
         var p = new promise.defer();
         _listPermission(job['dstFileId'], function(err, result){
             if (err){
-                logger.error('listPermission error:', err); 
+                logger.error('listPermission error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -919,7 +919,7 @@ function setPermission(worker, job){
                     err === 'SHARE_LINK' ||
                     err === 'SKIP_TYPE' 
                    ){
-                       logger.warn('skipped:', err);
+                       logger.warn('skipped:',new Error(err));
                        p.resolve({idx: idx + 1});
                        return;
                    }
@@ -954,7 +954,7 @@ function setPermission(worker, job){
         var title = getPrefix('SET_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -1013,7 +1013,7 @@ function changeOwner(worker, job){
         var title = getPrefix('CH_OWNER') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
@@ -1051,7 +1051,7 @@ function removePermission(worker, job){
         var p = new promise.defer();
         _listPermission(job['srcFileId'], function(err, result){
             if (err){
-                logger.error('listPermission error:', err); 
+                logger.error('listPermission error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -1088,7 +1088,7 @@ function removePermission(worker, job){
                     err === 'NO_USER' ||
                     err === 'RUNNER_ID' 
                    ){
-                       logger.warn('skipped:', err);
+                       logger.warn('skipped:',new Error(err));
                        p.resolve({idx: idx + 1});
                        return;
                    }
@@ -1122,7 +1122,7 @@ function removePermission(worker, job){
         var title = getPrefix('RM_PERMISSION') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -1159,7 +1159,7 @@ function markDone(worker, job){
         var title = job['oriTitle'];
         _renameFile(job['dstFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
@@ -1179,7 +1179,7 @@ function markDone(worker, job){
         var title = getPrefix('DONE') + '#' + job['srcFileId']+ '#'+job['dstFileId']+'#' + job['oriTitle'];
         _renameFile(job['srcFileId'], title, function(err, file){
             if (err){
-                logger.error('rename error:', err); 
+                logger.error('rename error:',new Error(err)); 
                 if (handleError(err, worker, job)['retry']){
                     jobs.push(job);
                 }
