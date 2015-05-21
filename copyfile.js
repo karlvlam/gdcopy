@@ -164,12 +164,12 @@ function handleError(err, worker, job){
     }
 
     if (errStr.match(/Internal Error/)){
+        job['errorCount']++;
         backoff();
         r.error = 'INTERNAL_ERROR';
         r.retry = true;
     }
 
-    job['errorCount']++;
     if (job['errorCount'] >= 3){
         logger.warn('Too many retry. DROP!');
         r.retry = false;
