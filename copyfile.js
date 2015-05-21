@@ -121,6 +121,7 @@ function createJob(){
         newOwner: null,
         srcParents: [],
         srcPremissions: [],
+        errorCount: 0,
     }
 
     return o;
@@ -166,6 +167,12 @@ function handleError(err, worker, job){
         backoff();
         r.error = 'INTERNAL_ERROR';
         r.retry = true;
+    }
+
+    job['errorCount']++;
+    if (job['errorCount'] >= 3){
+        logger.warn('Too many retry. DROP!');
+        r.retry = false;
     }
 
 
